@@ -83,7 +83,7 @@ function UtilityBar({ onLogin }) {
           북마크
         </a>
         <span style={{ color: 'var(--line)' }}>|</span>
-        <a href="#" onClick={(e) => { e.preventDefault(); onLogin && onLogin(); }} style={{ color: 'var(--ink-900)', fontWeight: 600 }}>로그인</a>
+        <a href="/login" onClick={(e) => { if (onLogin) { e.preventDefault(); onLogin(); } }} style={{ color: 'var(--ink-900)', fontWeight: 600 }}>로그인</a>
       </div>
     </div>
   );
@@ -92,7 +92,7 @@ function UtilityBar({ onLogin }) {
 /* ============================================================
    LOGIN PAGE
 ============================================================ */
-function LoginPage({ onBack, onSignup }) {
+export function LoginPage({ onBack, onSignup }) {
   return (
     <div data-screen-label="03 로그인" style={{ minHeight: '100vh', background: '#fff' }}>
       <UtilityBar onLogin={() => {}} />

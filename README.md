@@ -35,6 +35,7 @@ npm run dev
 ## 페이지
 
 - `/` — 지원사업 검색/상세 목업
+- `/login` — 소셜 로그인 화면
 - `/signup-info` — 소셜 가입 후 정보 입력
 - `/signup-info/step3` — 거주 지역/유형 선택
 
