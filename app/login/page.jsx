@@ -1,6 +1,7 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
+import { signIn } from 'next-auth/react';
 import { LoginPage } from '../page';
 
 export default function LoginRoutePage() {
@@ -9,7 +10,8 @@ export default function LoginRoutePage() {
   return (
     <LoginPage
       onBack={() => router.push('/')}
-      onSignup={() => router.push('/signup-info')}
+      onGoogleLogin={() => signIn('google', { callbackUrl: '/signup-info?p=google' })}
+      onKakaoLogin={() => signIn('kakao', { callbackUrl: '/signup-info?p=kakao' })}
     />
   );
 }

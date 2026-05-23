@@ -39,6 +39,28 @@ npm run dev
 - `/signup-info` — 소셜 가입 후 정보 입력
 - `/signup-info/step3` — 거주 지역/유형 선택
 
+## OAuth 로그인 설정
+
+`.env.example`을 참고해 `.env.local`을 만들고 아래 값을 채워주세요.
+
+```bash
+NEXTAUTH_URL=http://localhost:3000
+NEXTAUTH_SECRET=replace-with-a-random-secret
+
+GOOGLE_CLIENT_ID=
+GOOGLE_CLIENT_SECRET=
+
+KAKAO_CLIENT_ID=
+KAKAO_CLIENT_SECRET=
+```
+
+개발자 콘솔에 등록할 Redirect URI:
+
+- Google: `http://localhost:3000/api/auth/callback/google`
+- Kakao: `http://localhost:3000/api/auth/callback/kakao`
+
+배포 후에는 `NEXTAUTH_URL`과 Redirect URI의 도메인을 실제 배포 주소로 바꿔야 합니다.
+
 ## 라우팅 메모
 
 목록 ↔ 상세 전환은 단일 페이지 내부 `route` state로 처리되어 있습니다.

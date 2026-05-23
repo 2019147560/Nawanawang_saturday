@@ -1,6 +1,7 @@
 ﻿'use client';
 
 import React, { useMemo, useState } from 'react';
+import { signIn } from 'next-auth/react';
 
 /* ============================================================
    ICONS
@@ -92,7 +93,10 @@ function UtilityBar({ onLogin }) {
 /* ============================================================
    LOGIN PAGE
 ============================================================ */
-export function LoginPage({ onBack, onSignup }) {
+export function LoginPage({ onBack, onSignup, onGoogleLogin, onKakaoLogin }) {
+  const loginWithGoogle = onGoogleLogin || (() => signIn('google', { callbackUrl: '/signup-info?p=google' }));
+  const loginWithKakao = onKakaoLogin || (() => signIn('kakao', { callbackUrl: '/signup-info?p=kakao' }));
+
   return (
     <div data-screen-label="03 로그인" style={{ minHeight: '100vh', background: '#fff' }}>
       <UtilityBar onLogin={() => {}} />
@@ -134,7 +138,7 @@ export function LoginPage({ onBack, onSignup }) {
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
           <button
-            onClick={onSignup}
+            onClick={loginWithGoogle}
             style={{
             height: 54, width: '100%', borderRadius: 10,
             border: '1px solid var(--line)', background: '#fff',
@@ -151,7 +155,7 @@ export function LoginPage({ onBack, onSignup }) {
           </button>
 
           <button
-            onClick={onSignup}
+            onClick={loginWithKakao}
             style={{
             height: 54, width: '100%', borderRadius: 10,
             border: 'none', background: '#FEE500',
