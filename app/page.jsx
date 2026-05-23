@@ -133,7 +133,9 @@ export function LoginPage({ onBack, onSignup }) {
         </div>
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-          <button style={{
+          <button
+            onClick={onSignup}
+            style={{
             height: 54, width: '100%', borderRadius: 10,
             border: '1px solid var(--line)', background: '#fff',
             color: 'var(--ink-900)', fontSize: 15, fontWeight: 600,
