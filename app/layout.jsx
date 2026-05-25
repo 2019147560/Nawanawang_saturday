@@ -1,4 +1,5 @@
 import './globals.css';
+import Providers from './providers';
 
 export const metadata = {
   title: '나와나망 — 지원사업 검색',
@@ -20,7 +21,10 @@ export default function RootLayout({ children }) {
           href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;600;700;800&display=swap"
         />
       </head>
-      <body>{children}</body>
+
+      <body>
+        <Providers>{children}</Providers>
+      </body>
     </html>
   );
 }
