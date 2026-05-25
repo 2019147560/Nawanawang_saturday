@@ -1,7 +1,9 @@
 /* Signup info collection page */
 'use client';
 
-import { useMemo, useState as useStateApp } from 'react';
+import { useEffect, useMemo, useState as useStateApp } from 'react';
+import { useRouter } from 'next/navigation';
+import { useSession } from 'next-auth/react';
 import { SIcon } from './signup-info-icons';
 import {
   HelperText,
@@ -64,6 +66,9 @@ function HeaderLogo() {
 }
 
 export default function SignupInfoPage() {
+  const router = useRouter();
+  const { data: session } = useSession();
+
   // Mock: which provider sent us here (toggle in URL: ?p=kakao)
   const provider = useMemo(() => {
     if (typeof window === 'undefined') return 'google';
@@ -83,8 +88,23 @@ export default function SignupInfoPage() {
   const [codeError, setCodeError] = useStateApp(false);
 
   const [phone, setPhone] = useStateApp('');
+  const [phoneCode, setPhoneCode] = useStateApp('');
+  const [phoneSent, setPhoneSent] = useStateApp(false);
+  const [phoneVerified, setPhoneVerified] = useStateApp(false);
+  const [phoneError, setPhoneError] = useStateApp('');
+  const [developmentPhoneCode, setDevelopmentPhoneCode] = useStateApp('');
+  const [saving, setSaving] = useStateApp(false);
+  const [submitError, setSubmitError] = useStateApp('');
 
   const timer = useCountdown(180); // 3:00
+  const phoneTimer = useCountdown(180);
+
+  useEffect(() => {
+    if (session?.user?.email && !email) {
+      setEmail(session.user.email);
+      setEmailVerified(true);
+    }
+  }, [session, email]);
 
   /* ----- handlers ----- */
   const checkNickname = () => {
@@ -117,9 +137,74 @@ export default function SignupInfoPage() {
     }
   };
 
+  const sendPhoneCode = async () => {
+    setPhoneError('');
+    setDevelopmentPhoneCode('');
+    if (!phoneOk) return;
+
+    const res = await fetch('/api/phone-verifications/send', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ phone }),
+    });
+    const data = await res.json();
+
+    if (!res.ok) {
+      setPhoneError(data.message || '인증번호 발송에 실패했습니다.');
+      return;
+    }
+
+    setPhoneSent(true);
+    setPhoneVerified(false);
+    setPhoneCode('');
+    setDevelopmentPhoneCode(data.developmentCode || '');
+    phoneTimer.start(180);
+  };
+
+  const verifyPhoneCode = async () => {
+    setPhoneError('');
+
+    const res = await fetch('/api/phone-verifications/verify', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ phone, code: phoneCode }),
+    });
+    const data = await res.json();
+
+    if (!res.ok) {
+      setPhoneError(data.message || '인증번호가 일치하지 않습니다.');
+      return;
+    }
+
+    setPhoneVerified(true);
+    phoneTimer.reset();
+  };
+
   const phoneOk = phone.replace(/\D/g, '').length >= 10;
   const nickOk = nicknameStatus === 'available';
-  const canSubmit = nickOk && emailVerified && phoneOk;
+  const canSubmit = nickOk && emailVerified && phoneOk && phoneVerified && !saving;
+
+  const submitBasicInfo = async () => {
+    if (!canSubmit) return;
+    setSaving(true);
+    setSubmitError('');
+
+    const res = await fetch('/api/signup/basic', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ nickname, email, phone, provider }),
+    });
+    const data = await res.json();
+
+    setSaving(false);
+
+    if (!res.ok) {
+      setSubmitError(data.message || '회원정보 저장에 실패했습니다.');
+      return;
+    }
+
+    router.push(`/signup-info/step3?p=${provider}&email=${encodeURIComponent(email)}`);
+  };
 
   return (
     <div className="page-bg">
@@ -305,11 +390,69 @@ export default function SignupInfoPage() {
               id="phone"
               type="tel"
               value={phone}
-              onChange={(v) => setPhone(formatPhone(v))}
+              onChange={(v) => {
+                setPhone(formatPhone(v));
+                setPhoneVerified(false);
+                setPhoneSent(false);
+                setPhoneCode('');
+                setPhoneError('');
+              }}
               placeholder="010-0000-0000"
               autoComplete="tel"
               leftIcon={<SIcon.Phone width={16} height={16} />}
+              disabled={phoneVerified}
+              status={phoneVerified ? 'success' : phoneError ? 'error' : undefined}
+              suffix={
+                <InlineBtn
+                  variant="outline"
+                  onClick={sendPhoneCode}
+                  disabled={!phoneOk || phoneVerified}
+                >
+                  {phoneSent && !phoneVerified ? '재발송' : '인증번호 받기'}
+                </InlineBtn>
+              }
             />
+            {phoneSent && !phoneVerified && (
+              <div style={{ marginTop: 10 }}>
+                <TextInput
+                  value={phoneCode}
+                  onChange={(v) => { setPhoneCode(v.replace(/\D/g, '').slice(0, 6)); setPhoneError(''); }}
+                  placeholder="문자 인증번호 6자리"
+                  status={phoneError ? 'error' : undefined}
+                  suffix={
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, paddingRight: 4 }}>
+                      <span style={{
+                        fontSize: 13, fontWeight: 700,
+                        color: phoneTimer.seconds < 30 ? 'var(--danger-500)' : 'var(--brand-500)',
+                        fontVariantNumeric: 'tabular-nums',
+                      }}>
+                        {fmtTime(phoneTimer.seconds)}
+                      </span>
+                      <InlineBtn
+                        variant="primary"
+                        onClick={verifyPhoneCode}
+                        disabled={phoneCode.length !== 6 || phoneTimer.seconds === 0}
+                      >
+                        확인
+                      </InlineBtn>
+                    </div>
+                  }
+                />
+                {developmentPhoneCode && (
+                  <HelperText>개발용 인증번호: {developmentPhoneCode}</HelperText>
+                )}
+              </div>
+            )}
+            {phoneVerified && (
+              <HelperText tone="success">
+                <SIcon.Check width={12} height={12} /> 휴대폰 인증이 완료되었어요
+              </HelperText>
+            )}
+            {phoneError && (
+              <HelperText tone="error">
+                <SIcon.X width={12} height={12} /> {phoneError}
+              </HelperText>
+            )}
             <HelperText>긴급 안내 외에는 연락드리지 않아요. 마케팅에는 사용되지 않습니다.</HelperText>
           </div>
 
@@ -347,6 +490,7 @@ export default function SignupInfoPage() {
             </button>
             <button
               disabled={!canSubmit}
+              onClick={submitBasicInfo}
               style={{
                 height: 54, borderRadius: 12, border: 'none',
                 background: canSubmit ? 'var(--brand-500)' : '#dfe2ea',
@@ -357,10 +501,18 @@ export default function SignupInfoPage() {
                 transition: 'background .15s ease',
               }}
             >
-              다음
+              {saving ? '저장 중...' : '다음'}
               <SIcon.ChevronR width={16} height={16} />
             </button>
           </div>
+
+          {submitError && (
+            <div style={{
+              marginTop: 14, fontSize: 12, color: 'var(--danger-500)', textAlign: 'center',
+            }}>
+              {submitError}
+            </div>
+          )}
 
           {/* Required-field hint */}
           {!canSubmit && (
@@ -370,6 +522,7 @@ export default function SignupInfoPage() {
               {!nickOk && '닉네임 중복확인이 필요해요. '}
               {!emailVerified && '이메일 인증이 필요해요. '}
               {!phoneOk && '연락처를 입력해주세요.'}
+              {phoneOk && !phoneVerified && ' 휴대폰 인증이 필요해요.'}
             </div>
           )}
         </section>

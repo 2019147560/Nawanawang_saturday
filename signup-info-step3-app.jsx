@@ -2,6 +2,7 @@
 'use client';
 
 import { useMemo as useMemoP3, useState as useStateP3 } from 'react';
+import { useRouter } from 'next/navigation';
 import { SIcon } from './signup-info-icons';
 import { HelperText, Label, ProgressBar } from './signup-info-fields';
 
@@ -125,16 +126,46 @@ function PersonaCard({ p, active, onClick }) {
 }
 
 export default function SignupInfoStep3() {
+  const router = useRouter();
+
   const provider = useMemoP3(() => {
     if (typeof window === 'undefined') return 'google';
     const u = new URLSearchParams(window.location.search);
     return u.get('p') === 'kakao' ? 'kakao' : 'google';
   }, []);
+  const email = useMemoP3(() => {
+    if (typeof window === 'undefined') return '';
+    return new URLSearchParams(window.location.search).get('email') || '';
+  }, []);
 
   const [region, setRegion] = useStateP3('');
   const [persona, setPersona] = useStateP3('');
+  const [saving, setSaving] = useStateP3(false);
+  const [submitError, setSubmitError] = useStateP3('');
 
-  const canSubmit = region && persona;
+  const canSubmit = region && persona && !saving;
+
+  const submitProfile = async () => {
+    if (!canSubmit) return;
+    setSaving(true);
+    setSubmitError('');
+
+    const res = await fetch('/api/signup/profile', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, region, persona, provider }),
+    });
+    const data = await res.json();
+
+    setSaving(false);
+
+    if (!res.ok) {
+      setSubmitError(data.message || '회원정보 저장에 실패했습니다.');
+      return;
+    }
+
+    router.push('/');
+  };
 
   return (
     <div className="page-bg">
@@ -250,7 +281,7 @@ export default function SignupInfoStep3() {
             marginTop: 28,
           }}>
             <a
-              href="signup-info.html"
+              href="/signup-info"
               style={{
                 height: 54, borderRadius: 12,
                 border: '1px solid var(--line)', background: '#fff',
@@ -266,6 +297,7 @@ export default function SignupInfoStep3() {
             </a>
             <button
               disabled={!canSubmit}
+              onClick={submitProfile}
               style={{
                 height: 54, borderRadius: 12, border: 'none',
                 background: canSubmit ? 'var(--brand-500)' : '#dfe2ea',
@@ -276,10 +308,18 @@ export default function SignupInfoStep3() {
                 transition: 'background .15s ease',
               }}
             >
-              회원가입 완료
+              {saving ? '저장 중...' : '회원가입 완료'}
               <SIcon.Check width={18} height={18} />
             </button>
           </div>
+
+          {submitError && (
+            <div style={{
+              marginTop: 14, fontSize: 12, color: 'var(--danger-500)', textAlign: 'center',
+            }}>
+              {submitError}
+            </div>
+          )}
 
           {!canSubmit && (
             <div style={{

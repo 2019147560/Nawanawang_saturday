@@ -46,6 +46,8 @@ npm run dev
 ```bash
 NEXTAUTH_URL=http://localhost:3000
 NEXTAUTH_SECRET=replace-with-a-random-secret
+DATABASE_URL=postgres://user:password@host:5432/database
+POSTGRES_SSL=true
 
 GOOGLE_CLIENT_ID=
 GOOGLE_CLIENT_SECRET=
@@ -60,6 +62,19 @@ KAKAO_CLIENT_SECRET=
 - Kakao: `http://localhost:3000/api/auth/callback/kakao`
 
 배포 후에는 `NEXTAUTH_URL`과 Redirect URI의 도메인을 실제 배포 주소로 바꿔야 합니다.
+
+## 회원가입 DB 저장
+
+회원가입 저장 API:
+
+- `POST /api/signup/basic` — 닉네임, 이메일, 휴대폰 저장
+- `POST /api/signup/profile` — 거주 지역, 본인 유형 저장
+- `POST /api/phone-verifications/send` — 휴대폰 인증번호 생성
+- `POST /api/phone-verifications/verify` — 휴대폰 인증번호 확인
+
+기존 계정 테이블에 더해 휴대폰 인증번호 테이블이 필요합니다. DB에 `db/phone-verification.sql`을 한 번 실행해주세요.
+
+실제 문자 발송은 Solapi, Naver SENS, Twilio 같은 SMS 업체 키가 필요합니다. 아직 `SMS_PROVIDER`를 설정하지 않으면 개발 환경에서는 응답의 `developmentCode`로 인증 테스트를 할 수 있습니다.
 
 ## 라우팅 메모
 
