@@ -26,11 +26,16 @@ export async function POST(request) {
     [normalizedPhone, code, expiresAt],
   );
 
-  const result = await sendSms({ to: normalizedPhone, code });
+  try {
+    const result = await sendSms({ to: normalizedPhone, code });
 
-  return NextResponse.json({
-    ok: true,
-    expiresAt,
-    developmentCode: process.env.NODE_ENV === 'production' ? undefined : result.code,
-  });
+    return NextResponse.json({
+      ok: true,
+      expiresAt,
+      developmentCode: process.env.NODE_ENV === 'production' ? undefined : result.code,
+    });
+  } catch (error) {
+    console.error('Failed to send phone verification SMS:', error);
+    return NextResponse.json({ message: '인증번호 발송에 실패했습니다.' }, { status: 502 });
+  }
 }
