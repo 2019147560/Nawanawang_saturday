@@ -2,7 +2,7 @@
 
 import { useRouter } from 'next/navigation';
 import { signIn } from 'next-auth/react';
-import { LoginPage } from '../page';
+import { LoginPage } from '../home-client';
 
 export default function LoginRoutePage() {
   const router = useRouter();
