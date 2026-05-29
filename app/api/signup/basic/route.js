@@ -15,6 +15,7 @@ export async function POST(request) {
   const nickname = String(body.nickname || '').trim();
   const email = String(body.email || session?.user?.email || '').trim().toLowerCase();
   const phone = normalizePhone(body.phone);
+  const phoneValue = phone || null;
   const provider = session?.user?.provider || body.provider || null;
   const providerAccountId = session?.user?.id || null;
 
@@ -26,24 +27,8 @@ export async function POST(request) {
     return NextResponse.json({ message: '유효한 이메일이 아닙니다.' }, { status: 400 });
   }
 
-  if (!isValidKoreanMobile(phone)) {
+  if (phoneValue && !isValidKoreanMobile(phoneValue)) {
     return NextResponse.json({ message: '유효한 휴대폰 번호가 아닙니다.' }, { status: 400 });
-  }
-
-  const verifiedPhone = await query(
-    `
-      SELECT id
-      FROM phone_verification_codes
-      WHERE phone = $1
-        AND verified_at IS NOT NULL
-      ORDER BY verified_at DESC
-      LIMIT 1
-    `,
-    [phone],
-  );
-
-  if (verifiedPhone.rowCount === 0) {
-    return NextResponse.json({ message: '휴대폰 인증이 필요합니다.' }, { status: 400 });
   }
 
   const existingNickname = await query(
@@ -68,14 +53,14 @@ export async function POST(request) {
         provider,
         onboarding_step
       )
-      VALUES ($1, NOW(), $2, $3, $4, $5, NOW(), $6, 2)
+      VALUES ($1, NOW(), $2, $3, $4, $5, NULL, $6, 2)
       ON CONFLICT (email)
       DO UPDATE SET
         name = COALESCE(EXCLUDED.name, users.name),
         nickname = EXCLUDED.nickname,
         image_url = COALESCE(EXCLUDED.image_url, users.image_url),
         phone = EXCLUDED.phone,
-        phone_verified_at = NOW(),
+        phone_verified_at = EXCLUDED.phone_verified_at,
         provider = COALESCE(EXCLUDED.provider, users.provider),
         onboarding_step = GREATEST(users.onboarding_step, 2),
         updated_at = NOW()
@@ -86,7 +71,7 @@ export async function POST(request) {
       session?.user?.name || null,
       nickname,
       session?.user?.image || null,
-      phone,
+      phoneValue,
       provider,
     ],
   );

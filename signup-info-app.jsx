@@ -88,16 +88,10 @@ export default function SignupInfoPage() {
   const [codeError, setCodeError] = useStateApp(false);
 
   const [phone, setPhone] = useStateApp('');
-  const [phoneCode, setPhoneCode] = useStateApp('');
-  const [phoneSent, setPhoneSent] = useStateApp(false);
-  const [phoneVerified, setPhoneVerified] = useStateApp(false);
-  const [phoneError, setPhoneError] = useStateApp('');
-  const [developmentPhoneCode, setDevelopmentPhoneCode] = useStateApp('');
   const [saving, setSaving] = useStateApp(false);
   const [submitError, setSubmitError] = useStateApp('');
 
   const timer = useCountdown(180); // 3:00
-  const phoneTimer = useCountdown(180);
 
   useEffect(() => {
     if (session?.user?.email && !email) {
@@ -137,52 +131,10 @@ export default function SignupInfoPage() {
     }
   };
 
-  const sendPhoneCode = async () => {
-    setPhoneError('');
-    setDevelopmentPhoneCode('');
-    if (!phoneOk) return;
-
-    const res = await fetch('/api/phone-verifications/send', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ phone }),
-    });
-    const data = await res.json();
-
-    if (!res.ok) {
-      setPhoneError(data.message || '인증번호 발송에 실패했습니다.');
-      return;
-    }
-
-    setPhoneSent(true);
-    setPhoneVerified(false);
-    setPhoneCode('');
-    setDevelopmentPhoneCode(data.developmentCode || '');
-    phoneTimer.start(180);
-  };
-
-  const verifyPhoneCode = async () => {
-    setPhoneError('');
-
-    const res = await fetch('/api/phone-verifications/verify', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ phone, code: phoneCode }),
-    });
-    const data = await res.json();
-
-    if (!res.ok) {
-      setPhoneError(data.message || '인증번호가 일치하지 않습니다.');
-      return;
-    }
-
-    setPhoneVerified(true);
-    phoneTimer.reset();
-  };
-
-  const phoneOk = phone.replace(/\D/g, '').length >= 10;
+  const phoneDigits = phone.replace(/\D/g, '');
+  const phoneOk = phoneDigits.length === 0 || phoneDigits.length >= 10;
   const nickOk = nicknameStatus === 'available';
-  const canSubmit = nickOk && emailVerified && phoneOk && phoneVerified && !saving;
+  const canSubmit = nickOk && emailVerified && phoneOk && !saving;
 
   const submitBasicInfo = async () => {
     if (!canSubmit) return;
@@ -385,75 +337,25 @@ export default function SignupInfoPage() {
 
           {/* Field: Phone */}
           <div style={{ marginBottom: 8 }}>
-            <Label htmlFor="phone" required>연락처</Label>
+            <Label htmlFor="phone">
+              연락처 <span style={{ color: 'var(--ink-400)', fontWeight: 500 }}>(선택)</span>
+            </Label>
             <TextInput
               id="phone"
               type="tel"
               value={phone}
-              onChange={(v) => {
-                setPhone(formatPhone(v));
-                setPhoneVerified(false);
-                setPhoneSent(false);
-                setPhoneCode('');
-                setPhoneError('');
-              }}
+              onChange={(v) => setPhone(formatPhone(v))}
               placeholder="010-0000-0000"
               autoComplete="tel"
               leftIcon={<SIcon.Phone width={16} height={16} />}
-              disabled={phoneVerified}
-              status={phoneVerified ? 'success' : phoneError ? 'error' : undefined}
-              suffix={
-                <InlineBtn
-                  variant="outline"
-                  onClick={sendPhoneCode}
-                  disabled={!phoneOk || phoneVerified}
-                >
-                  {phoneSent && !phoneVerified ? '재발송' : '인증번호 받기'}
-                </InlineBtn>
-              }
+              status={phone && !phoneOk ? 'error' : undefined}
             />
-            {phoneSent && !phoneVerified && (
-              <div style={{ marginTop: 10 }}>
-                <TextInput
-                  value={phoneCode}
-                  onChange={(v) => { setPhoneCode(v.replace(/\D/g, '').slice(0, 6)); setPhoneError(''); }}
-                  placeholder="문자 인증번호 6자리"
-                  status={phoneError ? 'error' : undefined}
-                  suffix={
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, paddingRight: 4 }}>
-                      <span style={{
-                        fontSize: 13, fontWeight: 700,
-                        color: phoneTimer.seconds < 30 ? 'var(--danger-500)' : 'var(--brand-500)',
-                        fontVariantNumeric: 'tabular-nums',
-                      }}>
-                        {fmtTime(phoneTimer.seconds)}
-                      </span>
-                      <InlineBtn
-                        variant="primary"
-                        onClick={verifyPhoneCode}
-                        disabled={phoneCode.length !== 6 || phoneTimer.seconds === 0}
-                      >
-                        확인
-                      </InlineBtn>
-                    </div>
-                  }
-                />
-                {developmentPhoneCode && (
-                  <HelperText>개발용 인증번호: {developmentPhoneCode}</HelperText>
-                )}
-              </div>
-            )}
-            {phoneVerified && (
-              <HelperText tone="success">
-                <SIcon.Check width={12} height={12} /> 휴대폰 인증이 완료되었어요
-              </HelperText>
-            )}
-            {phoneError && (
+            {phone && !phoneOk && (
               <HelperText tone="error">
-                <SIcon.X width={12} height={12} /> {phoneError}
+                <SIcon.X width={12} height={12} /> 연락처를 입력하려면 올바른 휴대폰 번호를 입력해주세요.
               </HelperText>
             )}
-            <HelperText>긴급 안내 외에는 연락드리지 않아요. 마케팅에는 사용되지 않습니다.</HelperText>
+            <HelperText>선택 입력 항목입니다. 입력하지 않아도 다음 단계로 진행할 수 있어요.</HelperText>
           </div>
 
           {/* Privacy notice */}
@@ -521,8 +423,7 @@ export default function SignupInfoPage() {
             }}>
               {!nickOk && '닉네임 중복확인이 필요해요. '}
               {!emailVerified && '이메일 인증이 필요해요. '}
-              {!phoneOk && '연락처를 입력해주세요.'}
-              {phoneOk && !phoneVerified && ' 휴대폰 인증이 필요해요.'}
+              {!phoneOk && '연락처 형식을 확인해주세요.'}
             </div>
           )}
         </section>
