@@ -2142,12 +2142,22 @@ function ListPage({ mode = 'home', onOpen, onLogin, onHome, onNavAll }) {
     });
   }, [programs, filters, appliedQuery]);
 
-  const popularPrograms = useMemo(() => {
+  const firstPageSections = useMemo(() => {
     const source = programs.length ? programs : PROGRAMS;
-    return source.slice(0, POPULAR_PICKS.length).map((program, index) => ({
-      program,
-      entry: { ...POPULAR_PICKS[index], rank: index + 1 },
-    }));
+    const popularCount = Math.min(POPULAR_PICKS.length, source.length);
+    const nextStart = popularCount;
+    const nextEnd = Math.min(nextStart + 6, source.length);
+    const storyStart = nextEnd;
+    const storyEnd = Math.min(storyStart + 6, source.length);
+
+    return {
+      popular: source.slice(0, popularCount).map((program, index) => ({
+        program,
+        entry: { ...POPULAR_PICKS[index], rank: index + 1 },
+      })),
+      lightStart: source.slice(nextStart, nextEnd),
+      stories: source.slice(storyStart, storyEnd),
+    };
   }, [programs]);
 
   return (
@@ -2199,7 +2209,7 @@ function ListPage({ mode = 'home', onOpen, onLogin, onHome, onNavAll }) {
               subtitle="다른 청년들이 지금 이 시간 살펴보고 있는 프로그램이에요"
               live
             >
-              {popularPrograms.map(({ entry, program }) => (
+              {firstPageSections.popular.map(({ entry, program }) => (
                 <PopularCard key={program.id} entry={entry} program={program} onClick={() => onOpen(program)} />
               ))}
             </CurationRow>
@@ -2209,8 +2219,10 @@ function ListPage({ mode = 'home', onOpen, onLogin, onHome, onNavAll }) {
               title="1회만 참여해도 괜찮아요"
               subtitle="원데이·짧은 일정 — 부담 없이 한 번 와보세요"
             >
-              {ONE_SHOT_PICKS.map((p) => (
-                <OneShotCard key={p.id} p={p} onClick={() => {}} />
+              {firstPageSections.lightStart.map((p) => (
+                <div key={p.id} style={{ flex: '0 0 264px', scrollSnapAlign: 'start' }}>
+                  <ProgramCard p={p} onClick={() => onOpen(p)} />
+                </div>
               ))}
             </CurationRow>
 
@@ -2219,8 +2231,10 @@ function ListPage({ mode = 'home', onOpen, onLogin, onHome, onNavAll }) {
               title="사업 후기"
               subtitle="참여자가 직접 남긴 솔직한 후기예요"
             >
-              {REVIEWS.map((r) => (
-                <ReviewCard key={r.id} r={r} onClick={() => {}} />
+              {firstPageSections.stories.map((p) => (
+                <div key={p.id} style={{ flex: '0 0 264px', scrollSnapAlign: 'start' }}>
+                  <ProgramCard p={p} onClick={() => onOpen(p)} />
+                </div>
               ))}
             </CurationRow>
           </React.Fragment>
