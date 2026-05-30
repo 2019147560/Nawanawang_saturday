@@ -14,6 +14,39 @@ const CARD_BACKGROUNDS = [
   'var(--card-mint)',
 ];
 
+function getSupabaseConfig() {
+  const url =
+    process.env.SUPABASE_URL ||
+    process.env.NEXT_PUBLIC_SUPABASE_URL;
+
+  const key =
+    process.env.SUPABASE_SERVICE_ROLE_KEY ||
+    process.env.SUPABASE_ANON_KEY ||
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+
+  return { url: url?.replace(/\/$/, ''), key };
+}
+
+async function supabaseFetch(path) {
+  const { url, key } = getSupabaseConfig();
+  if (!url || !key) return null;
+
+  const res = await fetch(`${url}/rest/v1/${path}`, {
+    headers: {
+      apikey: key,
+      Authorization: `Bearer ${key}`,
+    },
+    cache: 'no-store',
+  });
+
+  if (!res.ok) {
+    const text = await res.text();
+    throw new Error(`Supabase request failed: ${res.status} ${text}`);
+  }
+
+  return res.json();
+}
+
 function formatDate(value) {
   if (!value) return '';
   const date = value instanceof Date ? value : new Date(value);
@@ -57,7 +90,71 @@ function compactChips(values) {
     .filter(Boolean);
 }
 
-async function fetchProgramsTableCards() {
+function mapProgramRow(row, index) {
+  const chips = Array.isArray(row.program_chips)
+    ? row.program_chips.map((item) => item.chip)
+    : row.chips;
+
+  const status = getRecruitStatus(row.deadline, row.status);
+  const dDay = getDDay(row.deadline, row.d_day);
+
+  return {
+    id: row.id,
+    tag: row.tag || '지원사업',
+    dDay,
+    title: row.title || '제목 없음',
+    org: row.org || '',
+    status,
+    bg: row.bg || CARD_BACKGROUNDS[index % CARD_BACKGROUNDS.length],
+    chips: chips?.length ? chips : compactChips([status, row.org]),
+    weeks: row.weeks || '',
+    deadline: row.deadline ? `마감 ${formatDate(row.deadline)}` : '상시 모집',
+    statusVariant: getStatusVariant(status, dDay, row.status_variant),
+  };
+}
+
+function mapEventRow(row, index) {
+  const status = getRecruitStatus(row.end_at_recruitment_period, row.is_recruit);
+  const dDay = getDDay(row.end_at_recruitment_period);
+  const weeks = row.times ? `${row.times}회` : compactChips([
+    row.start_at_program_period && formatDate(row.start_at_program_period),
+    row.end_at_program_period && formatDate(row.end_at_program_period),
+  ]).join(' - ');
+
+  return {
+    id: row.id,
+    tag: row.purpose || '지원사업',
+    dDay,
+    title: row.name || row.hooking_comment || '제목 없음',
+    org: row.enterprise_name || '',
+    status,
+    bg: row.image_rul || CARD_BACKGROUNDS[index % CARD_BACKGROUNDS.length],
+    chips: compactChips([status, row.region, row.is_online, row.participants]),
+    weeks,
+    deadline: row.end_at_recruitment_period ? `마감 ${formatDate(row.end_at_recruitment_period)}` : '상시 모집',
+    statusVariant: getStatusVariant(status, dDay),
+    link: row.link || '',
+    imageUrl: row.image_rul || '',
+  };
+}
+
+async function fetchProgramsFromSupabase() {
+  const rows = await supabaseFetch('programs?select=*,program_chips(chip)&order=id.asc');
+  if (!rows) return null;
+  return rows.map(mapProgramRow);
+}
+
+async function fetchEventsFromSupabase() {
+  const rows = await supabaseFetch(
+    'event?select=id,name,link,start_at_recruitment_period,end_at_recruitment_period,start_at_program_period,end_at_program_period,enterprise_name,purpose,is_online,region,is_recruit,times,participants,hooking_comment,image_rul&order=number.asc.nullslast,id.asc',
+  );
+  if (!rows) return null;
+  return rows.map(mapEventRow);
+}
+
+async function fetchProgramsFromPostgres() {
+  if (!process.env.DATABASE_URL) return null;
+
   const result = await query(
     `
       SELECT
@@ -82,26 +179,12 @@ async function fetchProgramsTableCards() {
     `,
   );
 
-  return result.rows.map((row, index) => {
-    const status = getRecruitStatus(row.deadline, row.status);
-    const dDay = getDDay(row.deadline, row.d_day);
-    return {
-      id: row.id,
-      tag: row.tag || '지원사업',
-      dDay,
-      title: row.title || '제목 없음',
-      org: row.org || '',
-      status,
-      bg: row.bg || CARD_BACKGROUNDS[index % CARD_BACKGROUNDS.length],
-      chips: row.chips?.length ? row.chips : compactChips([status, row.org]),
-      weeks: row.weeks || '',
-      deadline: row.deadline ? `마감 ${formatDate(row.deadline)}` : '상시 모집',
-      statusVariant: getStatusVariant(status, dDay, row.status_variant),
-    };
-  });
+  return result.rows.map(mapProgramRow);
 }
 
-async function fetchEventTableCards() {
+async function fetchEventsFromPostgres() {
+  if (!process.env.DATABASE_URL) return null;
+
   const result = await query(
     `
       SELECT
@@ -126,45 +209,32 @@ async function fetchEventTableCards() {
     `,
   );
 
-  return result.rows.map((row, index) => {
-    const status = getRecruitStatus(row.end_at_recruitment_period, row.is_recruit);
-    const dDay = getDDay(row.end_at_recruitment_period);
-    const weeks = row.times ? `${row.times}회` : compactChips([
-      row.start_at_program_period && formatDate(row.start_at_program_period),
-      row.end_at_program_period && formatDate(row.end_at_program_period),
-    ]).join(' - ');
-
-    return {
-      id: row.id,
-      tag: row.purpose || '지원사업',
-      dDay,
-      title: row.name || row.hooking_comment || '제목 없음',
-      org: row.enterprise_name || '',
-      status,
-      bg: row.image_rul || CARD_BACKGROUNDS[index % CARD_BACKGROUNDS.length],
-      chips: compactChips([status, row.region, row.is_online, row.participants]),
-      weeks,
-      deadline: row.end_at_recruitment_period ? `마감 ${formatDate(row.end_at_recruitment_period)}` : '상시 모집',
-      statusVariant: getStatusVariant(status, dDay),
-      link: row.link || '',
-      imageUrl: row.image_rul || '',
-    };
-  });
+  return result.rows.map(mapEventRow);
 }
 
 export async function GET() {
-  if (!process.env.DATABASE_URL) {
-    return NextResponse.json({ programs: [], source: 'fallback' });
-  }
-
   try {
-    const programCards = await fetchProgramsTableCards();
-    if (programCards.length > 0) {
-      return NextResponse.json({ programs: programCards, source: 'programs' });
+    const supabasePrograms = await fetchProgramsFromSupabase();
+    if (supabasePrograms?.length) {
+      return NextResponse.json({ programs: supabasePrograms, source: 'supabase:programs' });
     }
 
-    const eventCards = await fetchEventTableCards();
-    return NextResponse.json({ programs: eventCards, source: 'event' });
+    const supabaseEvents = await fetchEventsFromSupabase();
+    if (supabaseEvents?.length) {
+      return NextResponse.json({ programs: supabaseEvents, source: 'supabase:event' });
+    }
+
+    const postgresPrograms = await fetchProgramsFromPostgres();
+    if (postgresPrograms?.length) {
+      return NextResponse.json({ programs: postgresPrograms, source: 'postgres:programs' });
+    }
+
+    const postgresEvents = await fetchEventsFromPostgres();
+    if (postgresEvents?.length) {
+      return NextResponse.json({ programs: postgresEvents, source: 'postgres:event' });
+    }
+
+    return NextResponse.json({ programs: [], source: 'fallback' });
   } catch (error) {
     console.error('Failed to load program cards:', error);
     return NextResponse.json({ message: '지원사업 카드를 불러오지 못했습니다.' }, { status: 500 });
