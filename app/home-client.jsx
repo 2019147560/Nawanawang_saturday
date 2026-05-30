@@ -1,6 +1,6 @@
 ﻿'use client';
 
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { signIn } from 'next-auth/react';
 
 /* ============================================================
@@ -856,19 +856,30 @@ function ProgramCard({ p, onClick }) {
     >
       {/* Visual top */}
       <div style={{
-        position: 'relative', background: p.bg, height: 200, padding: 18,
+        position: 'relative',
+        background: p.imageUrl ? `center / cover no-repeat url("${p.imageUrl}")` : p.bg,
+        height: 200, padding: 18,
         display: 'flex', flexDirection: 'column', justifyContent: 'space-between',
         overflow: 'hidden',
       }}>
-        {/* Decorative blob */}
-        <div aria-hidden style={{
-          position: 'absolute', left: -40, bottom: -40, width: 130, height: 130,
-          borderRadius: '50%', background: 'rgba(255,255,255,0.45)',
-        }} />
-        <div aria-hidden style={{
-          position: 'absolute', right: -30, top: 30, width: 70, height: 70,
-          borderRadius: '50%', background: 'rgba(255,255,255,0.30)',
-        }} />
+        {!p.imageUrl && (
+          <React.Fragment>
+            <div aria-hidden style={{
+              position: 'absolute', left: -40, bottom: -40, width: 130, height: 130,
+              borderRadius: '50%', background: 'rgba(255,255,255,0.45)',
+            }} />
+            <div aria-hidden style={{
+              position: 'absolute', right: -30, top: 30, width: 70, height: 70,
+              borderRadius: '50%', background: 'rgba(255,255,255,0.30)',
+            }} />
+          </React.Fragment>
+        )}
+        {p.imageUrl && (
+          <div aria-hidden style={{
+            position: 'absolute', inset: 0,
+            background: 'linear-gradient(180deg, rgba(0,0,0,0.24), rgba(0,0,0,0.08) 45%, rgba(0,0,0,0.34))',
+          }} />
+        )}
 
         {/* Top row */}
         <div style={{
@@ -888,8 +899,9 @@ function ProgramCard({ p, onClick }) {
         <div style={{ position: 'relative' }}>
           <h3 style={{
             margin: 0, fontSize: 19, fontWeight: 800, lineHeight: 1.35,
-            color: 'var(--ink-900)', letterSpacing: '-0.02em',
+            color: p.imageUrl ? '#fff' : 'var(--ink-900)', letterSpacing: '-0.02em',
             whiteSpace: 'pre-line',
+            textShadow: p.imageUrl ? '0 1px 10px rgba(0,0,0,0.34)' : 'none',
           }}>{p.title}</h3>
         </div>
 
@@ -897,7 +909,12 @@ function ProgramCard({ p, onClick }) {
         <div style={{
           position: 'relative', display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between',
         }}>
-          <span style={{ fontSize: 12, color: 'var(--ink-700)', fontWeight: 500 }}>{p.org}</span>
+          <span style={{
+            fontSize: 12,
+            color: p.imageUrl ? '#fff' : 'var(--ink-700)',
+            fontWeight: 500,
+            textShadow: p.imageUrl ? '0 1px 8px rgba(0,0,0,0.38)' : 'none',
+          }}>{p.org}</span>
           <span style={{
             background: statusBg, color: statusFg, border: statusBorder,
             padding: '5px 12px', borderRadius: 999, fontSize: 11, fontWeight: 700,
@@ -1795,8 +1812,8 @@ const POPULAR_PICKS = [
   { rank: 6, delta: '▲ 4', programId: 8 },
 ];
 
-function PopularCard({ entry, onClick }) {
-  const p = PROGRAMS.find((x) => x.id === entry.programId);
+function PopularCard({ entry, program, onClick }) {
+  const p = program || PROGRAMS.find((x) => x.id === entry.programId);
   if (!p) return null;
   const up = entry.delta.startsWith('▲');
   const down = entry.delta.startsWith('▼');
@@ -1816,14 +1833,24 @@ function PopularCard({ entry, onClick }) {
       onMouseLeave={(e) => { e.currentTarget.style.transform = ''; e.currentTarget.style.boxShadow = ''; }}
     >
       <div style={{
-        position: 'relative', background: p.bg, height: 160,
+        position: 'relative',
+        background: p.imageUrl ? `center / cover no-repeat url("${p.imageUrl}")` : p.bg,
+        height: 160,
         padding: 14, overflow: 'hidden',
         display: 'flex', flexDirection: 'column', justifyContent: 'space-between',
       }}>
-        <div aria-hidden style={{
-          position: 'absolute', right: -32, top: -28, width: 110, height: 110,
-          borderRadius: '50%', background: 'rgba(255,255,255,0.35)',
-        }} />
+        {!p.imageUrl && (
+          <div aria-hidden style={{
+            position: 'absolute', right: -32, top: -28, width: 110, height: 110,
+            borderRadius: '50%', background: 'rgba(255,255,255,0.35)',
+          }} />
+        )}
+        {p.imageUrl && (
+          <div aria-hidden style={{
+            position: 'absolute', inset: 0,
+            background: 'linear-gradient(180deg, rgba(0,0,0,0.18), rgba(0,0,0,0.34))',
+          }} />
+        )}
         <div style={{
           position: 'relative',
           display: 'inline-flex', alignItems: 'baseline', gap: 4, alignSelf: 'flex-start',
@@ -2040,6 +2067,9 @@ function ReviewCard({ r, onClick }) {
 }
 
 function ListPage({ mode = 'home', onOpen, onLogin, onHome, onNavAll }) {
+  const [programs, setPrograms] = useState(PROGRAMS);
+  const [loadingPrograms, setLoadingPrograms] = useState(true);
+  const [programError, setProgramError] = useState('');
   const [filters, setFilters] = useState({
     region: [], level: [], mode: [],
     period: [], status: [], people: [],
@@ -2063,12 +2093,43 @@ function ListPage({ mode = 'home', onOpen, onLogin, onHome, onNavAll }) {
     if (mode === 'home') onNavAll && onNavAll();
   };
 
+  useEffect(() => {
+    let alive = true;
+
+    async function loadPrograms() {
+      try {
+        const res = await fetch('/api/programs', { cache: 'no-store' });
+        const data = await res.json();
+
+        if (!alive) return;
+        if (!res.ok) {
+          throw new Error(data.message || '지원사업 카드를 불러오지 못했습니다.');
+        }
+        if (Array.isArray(data.programs) && data.programs.length > 0) {
+          setPrograms(data.programs);
+        }
+        setProgramError('');
+      } catch (error) {
+        if (alive) {
+          console.error(error);
+          setProgramError('저장된 지원사업을 불러오지 못해 기본 카드를 표시하고 있어요.');
+        }
+      } finally {
+        if (alive) setLoadingPrograms(false);
+      }
+    }
+
+    loadPrograms();
+    return () => { alive = false; };
+  }, []);
+
   const filtered = useMemo(() => {
-    return PROGRAMS.filter((p) => {
+    return programs.filter((p) => {
       if (appliedQuery && !p.title.includes(appliedQuery) && !p.org.includes(appliedQuery)) return false;
 
       const anySelected = (arr) => Array.isArray(arr) && arr.length > 0;
-      const someChip = (arr, matchFn) => arr.some(v => p.chips.some(c => matchFn(c, v)));
+      const chips = Array.isArray(p.chips) ? p.chips : [];
+      const someChip = (arr, matchFn) => arr.some(v => chips.some(c => matchFn(c, v)));
 
       if (anySelected(filters.region) && !someChip(filters.region, (c, v) => c.includes(v))) return false;
       if (anySelected(filters.mode)   && !someChip(filters.mode,   (c, v) => c === v || c.includes(v))) return false;
@@ -2079,7 +2140,15 @@ function ListPage({ mode = 'home', onOpen, onLogin, onHome, onNavAll }) {
       }
       return true;
     });
-  }, [filters, appliedQuery]);
+  }, [programs, filters, appliedQuery]);
+
+  const popularPrograms = useMemo(() => {
+    const source = programs.length ? programs : PROGRAMS;
+    return source.slice(0, POPULAR_PICKS.length).map((program, index) => ({
+      program,
+      entry: { ...POPULAR_PICKS[index], rank: index + 1 },
+    }));
+  }, [programs]);
 
   return (
     <div data-screen-label={mode === 'all' ? '01b 지원사업 전체' : '01 홈'}>
@@ -2107,6 +2176,20 @@ function ListPage({ mode = 'home', onOpen, onLogin, onHome, onNavAll }) {
       </section>
 
       <main style={{ maxWidth: 1240, margin: '0 auto', padding: '0 32px 32px' }}>
+        {programError && (
+          <div style={{
+            marginTop: 18,
+            padding: '12px 14px',
+            border: '1px solid var(--line)',
+            borderRadius: 8,
+            background: '#fff',
+            color: 'var(--ink-600)',
+            fontSize: 12,
+          }}>
+            {programError}
+          </div>
+        )}
+
         {/* Curation rows — home only */}
         {mode === 'home' && (
           <React.Fragment>
@@ -2116,8 +2199,8 @@ function ListPage({ mode = 'home', onOpen, onLogin, onHome, onNavAll }) {
               subtitle="다른 청년들이 지금 이 시간 살펴보고 있는 프로그램이에요"
               live
             >
-              {POPULAR_PICKS.map((e) => (
-                <PopularCard key={e.programId} entry={e} onClick={() => onOpen(PROGRAMS.find(p => p.id === e.programId))} />
+              {popularPrograms.map(({ entry, program }) => (
+                <PopularCard key={program.id} entry={entry} program={program} onClick={() => onOpen(program)} />
               ))}
             </CurationRow>
 
@@ -2159,7 +2242,7 @@ function ListPage({ mode = 'home', onOpen, onLogin, onHome, onNavAll }) {
               flexWrap: 'wrap', gap: 12,
             }}>
               <div style={{ fontSize: 13, color: 'var(--ink-600)' }}>
-                전체 <strong style={{ color: 'var(--ink-900)', fontWeight: 700 }}>{filtered.length}</strong>건
+                {loadingPrograms ? '불러오는 중' : '전체'} <strong style={{ color: 'var(--ink-900)', fontWeight: 700 }}>{filtered.length}</strong>건
               </div>
               <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                 <select
