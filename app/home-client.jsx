@@ -2067,7 +2067,7 @@ function ReviewCard({ r, onClick }) {
 }
 
 function ListPage({ mode = 'home', onOpen, onLogin, onHome, onNavAll }) {
-  const [programs, setPrograms] = useState(PROGRAMS);
+  const [programs, setPrograms] = useState([]);
   const [loadingPrograms, setLoadingPrograms] = useState(true);
   const [programError, setProgramError] = useState('');
   const [filters, setFilters] = useState({
@@ -2105,14 +2105,19 @@ function ListPage({ mode = 'home', onOpen, onLogin, onHome, onNavAll }) {
         if (!res.ok) {
           throw new Error(data.message || '지원사업 카드를 불러오지 못했습니다.');
         }
-        if (Array.isArray(data.programs) && data.programs.length > 0) {
+        if (Array.isArray(data.programs)) {
           setPrograms(data.programs);
         }
-        setProgramError('');
+        setProgramError(
+          Array.isArray(data.programs) && data.programs.length > 0
+            ? ''
+            : 'Supabase에서 표시할 지원사업을 찾지 못했어요. Vercel 환경변수와 event 테이블 데이터를 확인해주세요.',
+        );
       } catch (error) {
         if (alive) {
           console.error(error);
-          setProgramError('저장된 지원사업을 불러오지 못해 기본 카드를 표시하고 있어요.');
+          setPrograms([]);
+          setProgramError('Supabase 지원사업 데이터를 불러오지 못했어요. Vercel 환경변수와 API 권한을 확인해주세요.');
         }
       } finally {
         if (alive) setLoadingPrograms(false);
@@ -2143,7 +2148,7 @@ function ListPage({ mode = 'home', onOpen, onLogin, onHome, onNavAll }) {
   }, [programs, filters, appliedQuery]);
 
   const firstPageSections = useMemo(() => {
-    const source = programs.length ? programs : PROGRAMS;
+    const source = programs;
     const popularCount = Math.min(POPULAR_PICKS.length, source.length);
     const nextStart = popularCount;
     const nextEnd = Math.min(nextStart + 6, source.length);
