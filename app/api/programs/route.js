@@ -152,6 +152,16 @@ async function fetchEventsFromSupabase() {
   return rows.map(mapEventRow);
 }
 
+async function trySource(source, loader) {
+  try {
+    const programs = await loader();
+    return Array.isArray(programs) && programs.length > 0 ? programs : null;
+  } catch (error) {
+    console.warn(`Skipping ${source} program source:`, error);
+    return null;
+  }
+}
+
 async function fetchProgramsFromPostgres() {
   if (!process.env.DATABASE_URL) return null;
 
@@ -213,30 +223,19 @@ async function fetchEventsFromPostgres() {
 }
 
 export async function GET() {
-  try {
-    const supabasePrograms = await fetchProgramsFromSupabase();
-    if (supabasePrograms?.length) {
-      return NextResponse.json({ programs: supabasePrograms, source: 'supabase:programs' });
-    }
+  const sources = [
+    ['supabase:event', fetchEventsFromSupabase],
+    ['supabase:programs', fetchProgramsFromSupabase],
+    ['postgres:event', fetchEventsFromPostgres],
+    ['postgres:programs', fetchProgramsFromPostgres],
+  ];
 
-    const supabaseEvents = await fetchEventsFromSupabase();
-    if (supabaseEvents?.length) {
-      return NextResponse.json({ programs: supabaseEvents, source: 'supabase:event' });
+  for (const [source, loader] of sources) {
+    const programs = await trySource(source, loader);
+    if (programs) {
+      return NextResponse.json({ programs, source });
     }
-
-    const postgresPrograms = await fetchProgramsFromPostgres();
-    if (postgresPrograms?.length) {
-      return NextResponse.json({ programs: postgresPrograms, source: 'postgres:programs' });
-    }
-
-    const postgresEvents = await fetchEventsFromPostgres();
-    if (postgresEvents?.length) {
-      return NextResponse.json({ programs: postgresEvents, source: 'postgres:event' });
-    }
-
-    return NextResponse.json({ programs: [], source: 'fallback' });
-  } catch (error) {
-    console.error('Failed to load program cards:', error);
-    return NextResponse.json({ message: '지원사업 카드를 불러오지 못했습니다.' }, { status: 500 });
   }
+
+  return NextResponse.json({ programs: [], source: 'fallback' });
 }
