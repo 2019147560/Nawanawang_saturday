@@ -1,7 +1,7 @@
 ﻿'use client';
 
-import React, { useEffect, useMemo, useState } from 'react';
-import { signIn } from 'next-auth/react';
+import React, { useMemo, useState } from 'react';
+
 
 /* ============================================================
    ICONS
@@ -20,6 +20,11 @@ const Icon = {
   Bookmark: (p) => (
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...p}>
       <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z" />
+    </svg>
+  ),
+  Edit: (p) => (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...p}>
+      <path d="M12 20h9" /><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z" />
     </svg>
   ),
   Refresh: (p) => (
@@ -65,7 +70,7 @@ const Icon = {
 /* ============================================================
    TOP UTILITY BAR
 ============================================================ */
-function UtilityBar({ onLogin }) {
+function UtilityBar({ onLogin, user, onLogout, onMyPage }) {
   return (
     <div style={{
       borderBottom: '1px solid var(--line-2)',
@@ -84,7 +89,28 @@ function UtilityBar({ onLogin }) {
           북마크
         </a>
         <span style={{ color: 'var(--line)' }}>|</span>
-        <a href="/login" onClick={(e) => { if (onLogin) { e.preventDefault(); onLogin(); } }} style={{ color: 'var(--ink-900)', fontWeight: 600 }}>로그인</a>
+        {user ? (
+          <div style={{ display: 'inline-flex', alignItems: 'center', gap: 14 }}>
+            <a
+              href="#"
+              onClick={(e) => { e.preventDefault(); onMyPage && onMyPage(); }}
+              style={{
+                display: 'inline-flex', alignItems: 'center', gap: 7, color: 'var(--ink-900)', fontWeight: 600,
+              }}
+            >
+              <span style={{
+                width: 20, height: 20, borderRadius: '50%',
+                background: 'var(--brand-50)', color: 'var(--brand-500)',
+                display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+                fontSize: 11, fontWeight: 800,
+              }}>{user.name.slice(0, 1)}</span>
+              {user.name}님
+            </a>
+            <a href="#" onClick={(e) => { e.preventDefault(); onLogout && onLogout(); }} style={{ color: 'var(--ink-500)', fontWeight: 500 }}>로그아웃</a>
+          </div>
+        ) : (
+          <a href="#" onClick={(e) => { e.preventDefault(); onLogin && onLogin(); }} style={{ color: 'var(--ink-900)', fontWeight: 600 }}>로그인</a>
+        )}
       </div>
     </div>
   );
@@ -93,10 +119,7 @@ function UtilityBar({ onLogin }) {
 /* ============================================================
    LOGIN PAGE
 ============================================================ */
-export function LoginPage({ onBack, onGoogleLogin, onKakaoLogin }) {
-  const loginWithGoogle = onGoogleLogin || (() => signIn('google', { callbackUrl: '/signup-info?p=google' }));
-  const loginWithKakao = onKakaoLogin || (() => signIn('kakao', { callbackUrl: '/signup-info?p=kakao' }));
-
+function LoginPage({ onBack, onSignup, onLoginDone, onGoogleLogin, onKakaoLogin }) {
   return (
     <div data-screen-label="03 로그인" style={{ minHeight: '100vh', background: '#fff' }}>
       <UtilityBar onLogin={() => {}} />
@@ -138,7 +161,7 @@ export function LoginPage({ onBack, onGoogleLogin, onKakaoLogin }) {
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
           <button
-            onClick={loginWithGoogle}
+            onClick={onGoogleLogin || onLoginDone}
             style={{
             height: 54, width: '100%', borderRadius: 10,
             border: '1px solid var(--line)', background: '#fff',
@@ -155,7 +178,7 @@ export function LoginPage({ onBack, onGoogleLogin, onKakaoLogin }) {
           </button>
 
           <button
-            onClick={loginWithKakao}
+            onClick={onKakaoLogin || onSignup}
             style={{
             height: 54, width: '100%', borderRadius: 10,
             border: 'none', background: '#FEE500',
@@ -856,30 +879,19 @@ function ProgramCard({ p, onClick }) {
     >
       {/* Visual top */}
       <div style={{
-        position: 'relative',
-        background: p.imageUrl ? `center / cover no-repeat url("${p.imageUrl}")` : p.bg,
-        height: 200, padding: 18,
+        position: 'relative', background: p.bg, height: 200, padding: 18,
         display: 'flex', flexDirection: 'column', justifyContent: 'space-between',
         overflow: 'hidden',
       }}>
-        {!p.imageUrl && (
-          <React.Fragment>
-            <div aria-hidden style={{
-              position: 'absolute', left: -40, bottom: -40, width: 130, height: 130,
-              borderRadius: '50%', background: 'rgba(255,255,255,0.45)',
-            }} />
-            <div aria-hidden style={{
-              position: 'absolute', right: -30, top: 30, width: 70, height: 70,
-              borderRadius: '50%', background: 'rgba(255,255,255,0.30)',
-            }} />
-          </React.Fragment>
-        )}
-        {p.imageUrl && (
-          <div aria-hidden style={{
-            position: 'absolute', inset: 0,
-            background: 'linear-gradient(180deg, rgba(0,0,0,0.24), rgba(0,0,0,0.08) 45%, rgba(0,0,0,0.34))',
-          }} />
-        )}
+        {/* Decorative blob */}
+        <div aria-hidden style={{
+          position: 'absolute', left: -40, bottom: -40, width: 130, height: 130,
+          borderRadius: '50%', background: 'rgba(255,255,255,0.45)',
+        }} />
+        <div aria-hidden style={{
+          position: 'absolute', right: -30, top: 30, width: 70, height: 70,
+          borderRadius: '50%', background: 'rgba(255,255,255,0.30)',
+        }} />
 
         {/* Top row */}
         <div style={{
@@ -899,9 +911,8 @@ function ProgramCard({ p, onClick }) {
         <div style={{ position: 'relative' }}>
           <h3 style={{
             margin: 0, fontSize: 19, fontWeight: 800, lineHeight: 1.35,
-            color: p.imageUrl ? '#fff' : 'var(--ink-900)', letterSpacing: '-0.02em',
+            color: 'var(--ink-900)', letterSpacing: '-0.02em',
             whiteSpace: 'pre-line',
-            textShadow: p.imageUrl ? '0 1px 10px rgba(0,0,0,0.34)' : 'none',
           }}>{p.title}</h3>
         </div>
 
@@ -909,12 +920,7 @@ function ProgramCard({ p, onClick }) {
         <div style={{
           position: 'relative', display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between',
         }}>
-          <span style={{
-            fontSize: 12,
-            color: p.imageUrl ? '#fff' : 'var(--ink-700)',
-            fontWeight: 500,
-            textShadow: p.imageUrl ? '0 1px 8px rgba(0,0,0,0.38)' : 'none',
-          }}>{p.org}</span>
+          <span style={{ fontSize: 12, color: 'var(--ink-700)', fontWeight: 500 }}>{p.org}</span>
           <span style={{
             background: statusBg, color: statusFg, border: statusBorder,
             padding: '5px 12px', borderRadius: 999, fontSize: 11, fontWeight: 700,
@@ -1128,7 +1134,6 @@ const pageBtn = (active) => ({
 ============================================================ */
 function Footer() {
   const [requestOpen, setRequestOpen] = useState(false);
-
   return (
     <footer style={{
       borderTop: '1px solid var(--line)', marginTop: 80,
@@ -1145,7 +1150,7 @@ function Footer() {
           </div>
           <div>고립·은둔청년 통합 정보 플랫폼</div>
           <div>
-            <strong style={{ color: 'var(--ink-700)' }}>대표 이메일</strong> step.here@naver.com
+            <strong style={{ color: 'var(--ink-700)' }}>대표 이메일:</strong> step.here@naver.com
           </div>
         </div>
         <div style={{
@@ -1159,8 +1164,9 @@ function Footer() {
           <a href="#">문의하기</a>
           <span style={{ width: 1, height: 12, background: 'var(--line)' }} />
           <a
-            href="#"
-            onClick={(e) => { e.preventDefault(); setRequestOpen(true); }}
+            href="https://forms.gle/XmhD8BckCtHSrSPZA"
+            target="_blank"
+            rel="noopener noreferrer"
             style={{
               display: 'inline-flex', alignItems: 'center', gap: 6,
               height: 34, padding: '0 14px',
@@ -1172,10 +1178,7 @@ function Footer() {
               textDecoration: 'none',
             }}
           >
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M12 5v14M5 12h14" />
-            </svg>
-            정보 등록 요청
+            제휴 및 문의
           </a>
         </div>
       </div>
@@ -1184,6 +1187,9 @@ function Footer() {
   );
 }
 
+/* ============================================================
+   INFO REQUEST MODAL (for institution staff)
+============================================================ */
 function InfoRequestModal({ onClose }) {
   const [submitted, setSubmitted] = useState(false);
   const [role, setRole] = useState('');
@@ -1191,6 +1197,7 @@ function InfoRequestModal({ onClose }) {
   const [contact, setContact] = useState('');
   const [note, setNote] = useState('');
 
+  // Close on Escape
   React.useEffect(() => {
     const onKey = (e) => { if (e.key === 'Escape') onClose(); };
     window.addEventListener('keydown', onKey);
@@ -1201,7 +1208,7 @@ function InfoRequestModal({ onClose }) {
     };
   }, [onClose]);
 
-  const roles = [
+  const ROLES = [
     '청년센터·재단',
     '지자체·공공기관',
     '복지·상담기관',
@@ -1209,28 +1216,8 @@ function InfoRequestModal({ onClose }) {
     '기타',
   ];
 
-  const inputStyle = {
-    width: '100%', height: 46,
-    border: '1px solid var(--line)', borderRadius: 10,
-    padding: '0 13px',
-    fontFamily: 'inherit', fontSize: 14,
-    color: 'var(--ink-900)', outline: 'none',
-    background: '#fff',
-  };
-
-  const labelStyle = {
-    display: 'block',
-    marginBottom: 8,
-    fontSize: 13,
-    color: 'var(--ink-700)',
-    fontWeight: 700,
-  };
-
-  const canSubmit = role && link.trim() && contact.trim();
-
   const handleSubmit = (e) => {
     e.preventDefault();
-    if (!canSubmit) return;
     setSubmitted(true);
   };
 
@@ -1256,8 +1243,9 @@ function InfoRequestModal({ onClose }) {
       >
         {!submitted ? (
           <form onSubmit={handleSubmit}>
+            {/* Header */}
             <div style={{
-              padding: '28px 32px 0',
+              padding: '28px 32px 0 32px',
               display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start',
               gap: 16,
             }}>
@@ -1280,7 +1268,8 @@ function InfoRequestModal({ onClose }) {
                   margin: '10px 0 0', fontSize: 13, lineHeight: 1.6,
                   color: 'var(--ink-600)',
                 }}>
-                  등록하고 싶은 지원사업 페이지와 연락처를 남겨주시면 검토 후 반영할게요.
+                  고립·은둔청년 관련 지원정보를 알고 있다면 나와, 나왕 운영팀에 전달해주세요.<br />
+                  전달된 정보는 검토 후 플랫폼에 반영됩니다.
                 </p>
               </div>
               <button
@@ -1288,118 +1277,161 @@ function InfoRequestModal({ onClose }) {
                 onClick={onClose}
                 aria-label="닫기"
                 style={{
-                  width: 34, height: 34, borderRadius: '50%',
-                  border: '1px solid var(--line)', background: '#fff',
-                  color: 'var(--ink-600)', display: 'inline-flex',
-                  alignItems: 'center', justifyContent: 'center',
-                  cursor: 'pointer',
+                  width: 32, height: 32, borderRadius: '50%',
+                  border: 'none', background: 'var(--bg-soft)',
+                  color: 'var(--ink-600)', cursor: 'pointer',
+                  display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+                  flexShrink: 0,
                 }}
               >
-                ×
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round">
+                  <path d="M6 6l12 12M18 6L6 18" />
+                </svg>
               </button>
             </div>
 
-            <div style={{ padding: '24px 32px 28px', display: 'grid', gap: 18 }}>
+            <div style={{ height: 1, background: 'var(--line-2)', margin: '22px 32px 0' }} />
+
+            {/* Body */}
+            <div style={{ padding: '22px 32px 24px', display: 'flex', flexDirection: 'column', gap: 20 }}>
+              {/* 요청자 신분 */}
               <div>
-                <label style={labelStyle}>기관 유형</label>
-                <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-                  {roles.map((item) => (
-                    <button
-                      type="button"
-                      key={item}
-                      onClick={() => setRole(item)}
-                      style={{
-                        height: 34, padding: '0 12px', borderRadius: 999,
-                        border: `1px solid ${role === item ? 'var(--brand-500)' : 'var(--line)'}`,
-                        background: role === item ? 'var(--brand-50)' : '#fff',
-                        color: role === item ? 'var(--brand-500)' : 'var(--ink-700)',
-                        fontSize: 12, fontWeight: 700,
-                        cursor: 'pointer',
-                      }}
-                    >
-                      {item}
-                    </button>
-                  ))}
+                <ModalLabel>요청자 신분</ModalLabel>
+                <ModalHelp>어떤 관계자로 정보를 전달하시나요?</ModalHelp>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginTop: 10 }}>
+                  {ROLES.map((r) => {
+                    const active = role === r;
+                    return (
+                      <button
+                        type="button"
+                        key={r}
+                        onClick={() => setRole(r)}
+                        style={{
+                          padding: '8px 14px', borderRadius: 999,
+                          border: `1px solid ${active ? 'var(--brand-500)' : 'var(--line)'}`,
+                          background: active ? 'var(--brand-50)' : '#fff',
+                          color: active ? 'var(--brand-500)' : 'var(--ink-700)',
+                          fontSize: 13, fontWeight: active ? 600 : 500,
+                          fontFamily: 'inherit', cursor: 'pointer',
+                        }}
+                      >
+                        {r}
+                      </button>
+                    );
+                  })}
                 </div>
               </div>
 
+              {/* 링크 */}
               <div>
-                <label style={labelStyle}>지원사업 링크</label>
+                <ModalLabel>링크</ModalLabel>
+                <ModalHelp>공고 또는 안내 페이지 링크를 입력해주세요.</ModalHelp>
                 <input
+                  type="url"
                   value={link}
                   onChange={(e) => setLink(e.target.value)}
-                  placeholder="https://..."
-                  style={inputStyle}
+                  placeholder="https://"
+                  style={modalInput}
+                  onFocus={(e) => e.currentTarget.style.borderColor = 'var(--brand-500)'}
+                  onBlur={(e) => e.currentTarget.style.borderColor = 'var(--line)'}
                 />
               </div>
 
+              {/* 담당자 연락처 */}
               <div>
-                <label style={labelStyle}>담당자 연락처</label>
+                <ModalLabel>담당자 연락처</ModalLabel>
+                <ModalHelp>운영팀이 확인 후 회신할 수 있도록 전화번호 또는 이메일을 남겨주세요.</ModalHelp>
                 <input
+                  type="text"
                   value={contact}
                   onChange={(e) => setContact(e.target.value)}
-                  placeholder="이메일 또는 전화번호"
-                  style={inputStyle}
+                  placeholder="예: 010-0000-0000 또는 example@org.kr"
+                  style={modalInput}
+                  onFocus={(e) => e.currentTarget.style.borderColor = 'var(--brand-500)'}
+                  onBlur={(e) => e.currentTarget.style.borderColor = 'var(--line)'}
                 />
               </div>
 
+              {/* 담으면 좋은 내용 */}
               <div>
-                <label style={labelStyle}>추가 메모</label>
+                <ModalLabel>담으면 좋은 내용</ModalLabel>
+                <ModalHelp>운영팀이 확인하면 좋을 내용이나 강조하고 싶은 부분을 적어주세요.</ModalHelp>
                 <textarea
                   value={note}
                   onChange={(e) => setNote(e.target.value)}
-                  placeholder="등록 요청 사유나 참고 내용을 적어주세요."
                   rows={4}
-                  style={{
-                    ...inputStyle,
-                    height: 'auto',
-                    padding: '12px 13px',
-                    resize: 'vertical',
-                    lineHeight: 1.5,
-                  }}
+                  placeholder="예: 모집 대상, 신청 마감일, 진행 형태 등"
+                  style={{ ...modalInput, padding: '12px 14px', resize: 'vertical', lineHeight: 1.55, minHeight: 100 }}
+                  onFocus={(e) => e.currentTarget.style.borderColor = 'var(--brand-500)'}
+                  onBlur={(e) => e.currentTarget.style.borderColor = 'var(--line)'}
                 />
               </div>
+            </div>
 
+            {/* Footer */}
+            <div style={{
+              padding: '0 32px 28px',
+              display: 'flex', justifyContent: 'flex-end', gap: 8,
+            }}>
               <button
-                type="submit"
-                disabled={!canSubmit}
+                type="button"
+                onClick={onClose}
                 style={{
-                  height: 48, borderRadius: 10, border: 'none',
-                  background: canSubmit ? 'var(--brand-500)' : '#dfe2ea',
-                  color: canSubmit ? '#fff' : 'var(--ink-400)',
-                  fontSize: 14, fontWeight: 800,
-                  cursor: canSubmit ? 'pointer' : 'not-allowed',
+                  height: 44, padding: '0 18px', borderRadius: 10,
+                  border: '1px solid var(--line)', background: '#fff',
+                  color: 'var(--ink-700)', fontSize: 14, fontWeight: 600,
+                  fontFamily: 'inherit', cursor: 'pointer',
                 }}
               >
-                요청 보내기
+                취소
+              </button>
+              <button
+                type="submit"
+                style={{
+                  height: 44, padding: '0 22px', borderRadius: 10,
+                  border: 'none', background: 'var(--ink-900)',
+                  color: '#fff', fontSize: 14, fontWeight: 700,
+                  fontFamily: 'inherit', cursor: 'pointer',
+                }}
+              >
+                전달하기
               </button>
             </div>
           </form>
         ) : (
-          <div style={{ padding: '42px 32px', textAlign: 'center' }}>
+          /* Success state */
+          <div style={{ padding: '40px 32px 32px', textAlign: 'center' }}>
             <div style={{
-              width: 54, height: 54, borderRadius: '50%',
-              background: 'var(--brand-50)', color: 'var(--brand-500)',
+              width: 56, height: 56, margin: '0 auto 16px',
+              borderRadius: '50%', background: 'var(--brand-50)',
+              color: 'var(--brand-500)',
               display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-              marginBottom: 16,
             }}>
-              <svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+              <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M20 6 9 17l-5-5" />
               </svg>
             </div>
-            <h2 style={{ margin: 0, fontSize: 22, fontWeight: 800, color: 'var(--ink-900)' }}>
-              요청이 접수되었어요
+            <h2 style={{
+              margin: 0, fontSize: 20, fontWeight: 800,
+              color: 'var(--ink-900)', letterSpacing: '-0.02em',
+            }}>
+              전달이 완료되었어요
             </h2>
-            <p style={{ margin: '10px 0 22px', fontSize: 13, lineHeight: 1.6, color: 'var(--ink-600)' }}>
-              남겨주신 정보를 확인한 뒤 등록 여부를 안내드릴게요.
+            <p style={{
+              margin: '10px 0 24px', fontSize: 13, lineHeight: 1.65,
+              color: 'var(--ink-600)',
+            }}>
+              운영팀이 검토 후 플랫폼에 반영합니다.<br />
+              소중한 정보를 공유해주셔서 감사합니다.
             </p>
             <button
               type="button"
               onClick={onClose}
               style={{
-                height: 42, padding: '0 18px', borderRadius: 10,
-                border: 'none', background: 'var(--ink-900)', color: '#fff',
-                fontWeight: 800, cursor: 'pointer',
+                height: 44, padding: '0 28px', borderRadius: 10,
+                border: 'none', background: 'var(--ink-900)',
+                color: '#fff', fontSize: 14, fontWeight: 700,
+                fontFamily: 'inherit', cursor: 'pointer',
               }}
             >
               닫기
@@ -1407,6 +1439,31 @@ function InfoRequestModal({ onClose }) {
           </div>
         )}
       </div>
+    </div>
+  );
+}
+
+const modalInput = {
+  width: '100%', height: 44,
+  border: '1px solid var(--line)', borderRadius: 10,
+  padding: '0 14px', fontSize: 14, color: 'var(--ink-900)',
+  fontFamily: 'inherit', background: '#fff', outline: 'none',
+  boxSizing: 'border-box',
+};
+
+function ModalLabel({ children }) {
+  return (
+    <div style={{
+      fontSize: 13, fontWeight: 700,
+      color: 'var(--ink-900)', marginBottom: 4,
+    }}>{children}</div>
+  );
+}
+
+function ModalHelp({ children }) {
+  return (
+    <div style={{ fontSize: 12, color: 'var(--ink-500)', lineHeight: 1.5 }}>
+      {children}
     </div>
   );
 }
@@ -1434,11 +1491,11 @@ const DETAIL_DATA = {
   },
 };
 
-function ProgramDetailPage({ program, onBack, onLogin }) {
+function ProgramDetailPage({ program, onBack, onLogin, user, onLogout, onMyPage }) {
   const p = program;
   return (
     <div data-screen-label="02 지원사업 상세">
-      <UtilityBar onLogin={onLogin} />
+      <UtilityBar onLogin={onLogin} user={user} onLogout={onLogout} onMyPage={onMyPage} />
       <MainNav />
 
       <main style={{ maxWidth: 1240, margin: '0 auto', padding: '0 32px 32px' }}>
@@ -1708,23 +1765,958 @@ function SidebarRow({ label, value, last }) {
 }
 
 /* ============================================================
+   SIGNUP PAGE — 카카오 로그인 후 회원가입 (4-step wizard)
+============================================================ */
+const REGIONS = ['서울','부산','대구','인천','광주','대전','울산','세종','경기','강원','충청','전라','경상','제주'];
+const PURPOSES = [
+  { emoji: '🙋', label: '나를 위한 정보를 찾고 있어요' },
+  { emoji: '👨‍👩‍👧', label: '가족을 위한 정보를 찾고 있어요' },
+  { emoji: '🤝', label: '주변 사람을 위한 정보를 찾고 있어요' },
+  { emoji: '🏢', label: '기관/실무자로 정보를 확인하고 있어요' },
+];
+const AGE_BANDS = ['10대','20대 초반','20대 후반','30대 초반','30대 후반','40대 이상'];
+const INTERESTS = ['심리 상담','일상 회복','진로·취업','가족 상담','커뮤니티·모임','생활 지원','교육 프로그램','기타'];
+const PARTICIPATION = ['온라인','오프라인'];
+
+function SignupPage({ onBack, onDone }) {
+  const [step, setStep] = useState(1);
+  const STEPS = ['기본 정보', '관심 정보', '선택 정보', '동의'];
+  const [form, setForm] = useState({
+    nickname: '', email: '', password: '', passwordConfirm: '',
+    emailCode: '',
+    regions: [], purposes: [],
+    phone: '', age: '', interests: [], participation: [],
+    agreeTerms: false, agreePrivacy: false,
+    agreeExtra: false, agreeNotify: false, agreeMarketing: false,
+  });
+  // email verification flow
+  const [emailSent, setEmailSent] = useState(false);
+  const [emailVerified, setEmailVerified] = useState(false);
+  const [emailTimer, setEmailTimer] = useState(0);
+  React.useEffect(() => {
+    if (emailTimer <= 0) return;
+    const t = setTimeout(() => setEmailTimer((s) => s - 1), 1000);
+    return () => clearTimeout(t);
+  }, [emailTimer]);
+  const sendEmailCode = () => {
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email)) return;
+    setEmailSent(true);
+    setEmailVerified(false);
+    setEmailTimer(180); // 3 min
+  };
+  const verifyEmailCode = () => {
+    // demo: any 6-digit accepts
+    if (/^\d{6}$/.test(form.emailCode)) {
+      setEmailVerified(true);
+      setEmailTimer(0);
+    }
+  };
+  const fmtTimer = (s) => `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
+
+  const upd = (k, v) => setForm((f) => ({ ...f, [k]: v }));
+  const toggleArr = (k, v) => setForm((f) => ({
+    ...f, [k]: f[k].includes(v) ? f[k].filter(x => x !== v) : [...f[k], v],
+  }));
+
+  // Password rules
+  const pwRules = [
+    { id: 'len', label: '8자 이상 20자 이하', ok: form.password.length >= 8 && form.password.length <= 20 },
+    { id: 'letter', label: '영문 포함', ok: /[A-Za-z]/.test(form.password) },
+    { id: 'num', label: '숫자 포함', ok: /\d/.test(form.password) },
+    { id: 'spc', label: '특수문자 포함 (!@#$%^&* 등)', ok: /[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(form.password) },
+  ];
+  const pwAllOk = pwRules.every(r => r.ok);
+  const pwMatch = form.password.length > 0 && form.password === form.passwordConfirm;
+
+  const validStep = () => {
+    if (step === 1) {
+      return form.nickname.trim()
+        && emailVerified
+        && pwAllOk
+        && pwMatch;
+    }
+    if (step === 2) return form.regions.length > 0 && form.purposes.length > 0;
+    if (step === 3) return true; // optional
+    if (step === 4) return form.agreeTerms && form.agreePrivacy;
+    return false;
+  };
+
+  const next = () => {
+    if (!validStep()) return;
+    if (step < 4) { setStep(step + 1); window.scrollTo({ top: 0, behavior: 'instant' }); }
+    else { onDone && onDone(); }
+  };
+  const prev = () => {
+    if (step > 1) { setStep(step - 1); window.scrollTo({ top: 0, behavior: 'instant' }); }
+    else { onBack && onBack(); }
+  };
+
+  return (
+    <div data-screen-label="04 회원가입" style={{ minHeight: '100vh', background: '#fff' }}>
+      <UtilityBar onLogin={() => {}} />
+      <MainNav />
+
+      <main style={{ maxWidth: 560, margin: '0 auto', padding: '40px 24px 80px' }}>
+        {/* back */}
+        <button onClick={prev} style={{
+          display: 'inline-flex', alignItems: 'center', gap: 4,
+          background: 'transparent', border: 'none', padding: '6px 0',
+          color: 'var(--ink-500)', fontSize: 13, marginBottom: 20, cursor: 'pointer',
+        }}>
+          <Icon.ChevronL width={14} height={14} />
+          {step === 1 ? '닫기' : '이전 단계'}
+        </button>
+
+        {/* progress */}
+        <div style={{ marginBottom: 28 }}>
+          <div style={{
+            display: 'flex', alignItems: 'center', gap: 6, marginBottom: 10,
+            fontSize: 11, fontWeight: 600, color: 'var(--ink-500)',
+          }}>
+            <span style={{ color: 'var(--brand-500)', fontWeight: 700 }}>STEP {step}</span>
+            <span style={{ color: 'var(--ink-300)' }}>/</span>
+            <span>{STEPS.length}</span>
+            <span style={{ marginLeft: 8, color: 'var(--ink-700)' }}>{STEPS[step - 1]}</span>
+          </div>
+          <div style={{
+            height: 4, borderRadius: 999, background: 'var(--line-2)', overflow: 'hidden',
+          }}>
+            <div style={{
+              width: `${(step / STEPS.length) * 100}%`, height: '100%',
+              background: 'var(--brand-500)', transition: 'width .3s ease',
+            }} />
+          </div>
+        </div>
+
+        {/* Header */}
+        {step === 1 && (
+          <SignupHeader
+            title={<>나와, <span style={{ color: 'var(--brand-500)' }}>나왕</span>입니다.<br />당신을 위한 정보를 수집합니다.</>}
+            desc={'맞춤 지원사업을 안내해 드리기 위해\n아래 정보가 필요해요. 입력하신 내용은 안전하게 보호됩니다.'}
+          />
+        )}
+        {step === 2 && (
+          <SignupHeader
+            title="관심 정보를 알려주세요"
+            desc={'관심 있는 지역과 이용 목적을 알려주시면,\n맞춤 지원사업을 더 정확하게 추천해 드릴 수 있어요.'}
+          />
+        )}
+        {step === 3 && (
+          <SignupHeader
+            title="선택 정보 입력"
+            desc={'더 정확한 추천을 원한다면 추가 정보를 입력할 수 있어요.\n선택 정보는 입력하지 않아도 가입할 수 있습니다.'}
+          />
+        )}
+        {step === 4 && (
+          <SignupHeader
+            title="약관에 동의해 주세요"
+            desc={'서비스 이용을 위해 필수 항목 동의가 필요합니다.\n선택 항목은 동의하지 않아도 가입할 수 있어요.'}
+          />
+        )}
+
+        {/* Step content */}
+        <div style={{ marginTop: 28, display: 'flex', flexDirection: 'column', gap: 22 }}>
+          {step === 1 && (
+            <React.Fragment>
+              <Field
+                label="닉네임" required
+                helper="서비스 안에서 사용할 이름이에요. 실명이 아니어도 괜찮습니다."
+              >
+                <SignupInput value={form.nickname} onChange={(v) => upd('nickname', v)} placeholder="예) 나왕이" />
+              </Field>
+
+              {/* Email + verification */}
+              <Field
+                label="이메일" required
+                helper="로그인과 정보 안내에 사용됩니다."
+              >
+                <div style={{ display: 'flex', gap: 8 }}>
+                  <div style={{ flex: 1 }}>
+                    <SignupInput
+                      type="email"
+                      value={form.email}
+                      onChange={(v) => { upd('email', v); setEmailVerified(false); setEmailSent(false); }}
+                      placeholder="example@email.com"
+                    />
+                  </div>
+                  <button
+                    type="button"
+                    onClick={sendEmailCode}
+                    disabled={emailVerified || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email)}
+                    style={{
+                      height: 48, padding: '0 14px', borderRadius: 10,
+                      border: '1px solid var(--ink-900)',
+                      background: emailVerified ? 'var(--line-2)' : '#fff',
+                      color: emailVerified ? 'var(--ink-400)' : 'var(--ink-900)',
+                      fontSize: 13, fontWeight: 700, whiteSpace: 'nowrap',
+                      cursor: emailVerified ? 'not-allowed' : 'pointer',
+                      opacity: !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email) ? 0.5 : 1,
+                      fontFamily: 'inherit',
+                    }}
+                  >
+                    {emailVerified ? '인증 완료' : (emailSent ? '재전송' : '인증 메일 전송')}
+                  </button>
+                </div>
+
+                {emailSent && !emailVerified && (
+                  <div style={{ marginTop: 10 }}>
+                    <div style={{ display: 'flex', gap: 8 }}>
+                      <div style={{ flex: 1, position: 'relative' }}>
+                        <SignupInput
+                          value={form.emailCode}
+                          onChange={(v) => upd('emailCode', v.replace(/\D/g, '').slice(0, 6))}
+                          placeholder="인증번호 6자리 입력"
+                        />
+                        {emailTimer > 0 && (
+                          <span style={{
+                            position: 'absolute', right: 14, top: '50%', transform: 'translateY(-50%)',
+                            fontSize: 12, fontWeight: 700, color: 'var(--brand-500)',
+                            fontVariantNumeric: 'tabular-nums',
+                          }}>{fmtTimer(emailTimer)}</span>
+                        )}
+                      </div>
+                      <button
+                        type="button"
+                        onClick={verifyEmailCode}
+                        disabled={form.emailCode.length !== 6 || emailTimer === 0}
+                        style={{
+                          height: 48, padding: '0 14px', borderRadius: 10,
+                          border: 'none', background: 'var(--ink-900)', color: '#fff',
+                          fontSize: 13, fontWeight: 700,
+                          cursor: form.emailCode.length === 6 && emailTimer > 0 ? 'pointer' : 'not-allowed',
+                          opacity: form.emailCode.length === 6 && emailTimer > 0 ? 1 : 0.4,
+                          fontFamily: 'inherit',
+                        }}
+                      >
+                        확인
+                      </button>
+                    </div>
+                    <p style={{
+                      margin: '8px 0 0', fontSize: 11, color: 'var(--ink-500)', lineHeight: 1.5,
+                    }}>
+                      메일이 오지 않았다면 스팸함을 확인해 주세요. 인증번호는 3분간 유효합니다.
+                    </p>
+                  </div>
+                )}
+
+                {emailVerified && (
+                  <p style={{
+                    margin: '8px 0 0', fontSize: 12, color: '#1f7a4d', fontWeight: 600,
+                    display: 'inline-flex', alignItems: 'center', gap: 4,
+                  }}>
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#1f7a4d" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M20 6 9 17l-5-5" />
+                    </svg>
+                    이메일 인증이 완료되었어요
+                  </p>
+                )}
+              </Field>
+
+              {/* Password */}
+              <Field
+                label="비밀번호" required
+                helper="지원사업 알림과 본인 확인을 위해 사용돼요."
+              >
+                <SignupInput
+                  type="password"
+                  value={form.password}
+                  onChange={(v) => upd('password', v)}
+                  placeholder="비밀번호 입력"
+                />
+                <ul style={{
+                  listStyle: 'none', padding: 0, margin: '10px 0 0',
+                  display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px 12px',
+                }}>
+                  {pwRules.map((r) => (
+                    <li key={r.id} style={{
+                      display: 'inline-flex', alignItems: 'center', gap: 6,
+                      fontSize: 12, color: r.ok ? '#1f7a4d' : 'var(--ink-500)',
+                      fontWeight: r.ok ? 600 : 500,
+                    }}>
+                      <svg width="13" height="13" viewBox="0 0 24 24" fill="none"
+                        stroke={r.ok ? '#1f7a4d' : 'var(--ink-300)'}
+                        strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M20 6 9 17l-5-5" />
+                      </svg>
+                      {r.label}
+                    </li>
+                  ))}
+                </ul>
+              </Field>
+
+              <Field
+                label="비밀번호 확인" required
+              >
+                <SignupInput
+                  type="password"
+                  value={form.passwordConfirm}
+                  onChange={(v) => upd('passwordConfirm', v)}
+                  placeholder="비밀번호 다시 입력"
+                />
+                {form.passwordConfirm.length > 0 && (
+                  <p style={{
+                    margin: '8px 0 0', fontSize: 12, fontWeight: 600,
+                    color: pwMatch ? '#1f7a4d' : '#c0392b',
+                    display: 'inline-flex', alignItems: 'center', gap: 4,
+                  }}>
+                    {pwMatch ? (
+                      <React.Fragment>
+                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#1f7a4d" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                          <path d="M20 6 9 17l-5-5" />
+                        </svg>
+                        비밀번호가 일치해요
+                      </React.Fragment>
+                    ) : '비밀번호가 일치하지 않아요'}
+                  </p>
+                )}
+              </Field>
+            </React.Fragment>
+          )}
+
+          {step === 2 && (
+            <React.Fragment>
+              <Field
+                label="관심 지역" required
+                helper="지원 정보를 찾고 싶은 지역을 선택해 주세요. (중복 선택 가능)"
+              >
+                <ChipGroup
+                  options={REGIONS}
+                  value={form.regions}
+                  multi
+                  onChange={(v) => toggleArr('regions', v)}
+                />
+              </Field>
+              <Field
+                label="이용 목적" required
+                helper="어떤 목적으로 정보를 찾고 계신가요? (중복 선택 가능)"
+              >
+                <PurposeGroup
+                  options={PURPOSES}
+                  value={form.purposes}
+                  onChange={(v) => toggleArr('purposes', v)}
+                />
+              </Field>
+            </React.Fragment>
+          )}
+
+          {step === 3 && (
+            <React.Fragment>
+              <Field
+                label="전화번호"
+                helper="상담 연결, 문자 알림, 신청 안내가 필요한 경우에 사용됩니다."
+              >
+                <SignupInput value={form.phone} onChange={(v) => upd('phone', v)} placeholder="010-0000-0000" />
+              </Field>
+              <Field
+                label="연령대"
+                helper="연령 조건이 있는 지원 정보를 추천하는 데 사용됩니다."
+              >
+                <ChipGroup
+                  options={AGE_BANDS}
+                  value={form.age ? [form.age] : []}
+                  onChange={(v) => upd('age', form.age === v ? '' : v)}
+                />
+              </Field>
+              <Field
+                label="관심 지원 분야"
+                helper="(중복 선택 가능)"
+              >
+                <ChipGroup
+                  options={INTERESTS}
+                  value={form.interests}
+                  multi
+                  onChange={(v) => toggleArr('interests', v)}
+                />
+              </Field>
+              <Field label="참여 가능 방식" helper="(중복 선택 가능)">
+                <ChipGroup
+                  options={PARTICIPATION}
+                  value={form.participation}
+                  multi
+                  onChange={(v) => toggleArr('participation', v)}
+                />
+              </Field>
+            </React.Fragment>
+          )}
+
+          {step === 4 && (
+            <React.Fragment>
+              <ConsentAll form={form} setForm={setForm} />
+              <ConsentGroup title="필수">
+                <ConsentRow
+                  label="서비스 이용약관 동의"
+                  required
+                  checked={form.agreeTerms}
+                  onChange={() => upd('agreeTerms', !form.agreeTerms)}
+                />
+                <ConsentRow
+                  label="개인정보 수집 및 이용 동의"
+                  required
+                  checked={form.agreePrivacy}
+                  onChange={() => upd('agreePrivacy', !form.agreePrivacy)}
+                />
+              </ConsentGroup>
+              <ConsentGroup title="선택">
+                <ConsentRow
+                  label="맞춤 지원정보 제공을 위한 추가 정보 활용 동의"
+                  checked={form.agreeExtra}
+                  onChange={() => upd('agreeExtra', !form.agreeExtra)}
+                />
+                <ConsentRow
+                  label="알림 수신 동의"
+                  checked={form.agreeNotify}
+                  onChange={() => upd('agreeNotify', !form.agreeNotify)}
+                />
+                <ConsentRow
+                  label="마케팅 정보 수신 동의"
+                  checked={form.agreeMarketing}
+                  onChange={() => upd('agreeMarketing', !form.agreeMarketing)}
+                />
+              </ConsentGroup>
+            </React.Fragment>
+          )}
+        </div>
+
+        {/* Footer CTA */}
+        <div style={{ marginTop: 36, display: 'flex', gap: 10 }}>
+          {step > 1 && (
+            <button onClick={prev} style={{
+              flex: '0 0 auto', height: 54, padding: '0 20px', borderRadius: 12,
+              border: '1px solid var(--line)', background: '#fff',
+              color: 'var(--ink-700)', fontSize: 15, fontWeight: 600, cursor: 'pointer',
+            }}>이전</button>
+          )}
+          <button
+            onClick={next}
+            disabled={!validStep()}
+            style={{
+              flex: 1, height: 54, borderRadius: 12, border: 'none',
+              background: validStep() ? 'var(--ink-900)' : 'var(--ink-300)',
+              color: '#fff', fontSize: 15, fontWeight: 700,
+              cursor: validStep() ? 'pointer' : 'not-allowed',
+            }}
+          >
+            {step === 4 ? '가입 완료' : '다음'}
+          </button>
+        </div>
+      </main>
+    </div>
+  );
+}
+
+function SignupHeader({ title, desc }) {
+  return (
+    <div>
+      <h1 style={{
+        margin: 0, fontSize: 24, fontWeight: 800,
+        color: 'var(--ink-900)', letterSpacing: '-0.02em', lineHeight: 1.4,
+      }}>{title}</h1>
+      {desc && (
+        <p style={{
+          marginTop: 12, marginBottom: 0,
+          fontSize: 13, color: 'var(--ink-500)', lineHeight: 1.65, whiteSpace: 'pre-line',
+        }}>{desc}</p>
+      )}
+    </div>
+  );
+}
+
+function Field({ label, required, helper, children }) {
+  return (
+    <div>
+      <div style={{
+        display: 'flex', alignItems: 'baseline', gap: 4, marginBottom: 6,
+      }}>
+        <label style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink-900)' }}>
+          {label}
+        </label>
+        {required && (
+          <span style={{
+            color: 'var(--brand-500)', fontSize: 11, fontWeight: 700,
+          }}>*</span>
+        )}
+      </div>
+      {helper && (
+        <p style={{
+          margin: '0 0 10px', fontSize: 12, color: 'var(--ink-500)', lineHeight: 1.5,
+        }}>{helper}</p>
+      )}
+      {children}
+    </div>
+  );
+}
+
+function SignupInput({ value, onChange, placeholder, type = 'text' }) {
+  return (
+    <input
+      type={type}
+      value={value}
+      onChange={(e) => onChange(e.target.value)}
+      placeholder={placeholder}
+      style={{
+        width: '100%', height: 48, border: '1px solid var(--line)',
+        borderRadius: 10, padding: '0 14px',
+        fontSize: 14, outline: 'none', color: 'var(--ink-900)',
+        fontFamily: 'inherit', background: '#fff',
+      }}
+      onFocus={(e) => e.currentTarget.style.borderColor = 'var(--brand-500)'}
+      onBlur={(e) => e.currentTarget.style.borderColor = 'var(--line)'}
+    />
+  );
+}
+
+function ChipGroup({ options, value, multi, onChange }) {
+  return (
+    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+      {options.map((opt) => {
+        const active = value.includes(opt);
+        return (
+          <button
+            key={opt}
+            type="button"
+            onClick={() => onChange(opt)}
+            style={{
+              height: 38, padding: '0 14px', borderRadius: 999,
+              border: `1px solid ${active ? 'var(--brand-500)' : 'var(--line)'}`,
+              background: active ? 'var(--brand-50)' : '#fff',
+              color: active ? 'var(--brand-500)' : 'var(--ink-700)',
+              fontSize: 13, fontWeight: active ? 700 : 500, cursor: 'pointer',
+              fontFamily: 'inherit',
+            }}
+          >
+            {opt}
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
+function PurposeGroup({ options, value, onChange }) {
+  return (
+    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+      {options.map((opt) => {
+        const active = value.includes(opt.label);
+        return (
+          <button
+            key={opt.label}
+            type="button"
+            onClick={() => onChange(opt.label)}
+            style={{
+              position: 'relative',
+              display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: 8,
+              padding: '16px 16px 18px', borderRadius: 12, textAlign: 'left',
+              border: `1px solid ${active ? 'var(--brand-500)' : 'var(--line)'}`,
+              background: active ? 'var(--brand-50)' : '#fff',
+              color: 'var(--ink-900)', fontSize: 13.5, fontWeight: active ? 700 : 500,
+              lineHeight: 1.45, cursor: 'pointer', fontFamily: 'inherit',
+              transition: 'background .15s ease, border-color .15s ease',
+            }}
+          >
+            <span style={{ fontSize: 26, lineHeight: 1 }}>{opt.emoji}</span>
+            <span>{opt.label}</span>
+            {active && (
+              <span style={{
+                position: 'absolute', top: 10, right: 10,
+                width: 20, height: 20, borderRadius: '50%',
+                background: 'var(--brand-500)',
+                display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+              }}>
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="3.5" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M20 6 9 17l-5-5" />
+                </svg>
+              </span>
+            )}
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
+function RadioList({ options, value, onChange }) {
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+      {options.map((opt) => {
+        const active = value === opt;
+        return (
+          <button
+            key={opt}
+            type="button"
+            onClick={() => onChange(opt)}
+            style={{
+              display: 'flex', alignItems: 'center', gap: 12,
+              padding: '14px 16px', borderRadius: 10, textAlign: 'left',
+              border: `1px solid ${active ? 'var(--brand-500)' : 'var(--line)'}`,
+              background: active ? 'var(--brand-50)' : '#fff',
+              color: 'var(--ink-900)', fontSize: 14, fontWeight: active ? 700 : 500,
+              cursor: 'pointer', fontFamily: 'inherit',
+            }}
+          >
+            <span style={{
+              width: 18, height: 18, borderRadius: '50%', flexShrink: 0,
+              border: `2px solid ${active ? 'var(--brand-500)' : 'var(--ink-300)'}`,
+              display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+              background: '#fff',
+            }}>
+              {active && (
+                <span style={{
+                  width: 8, height: 8, borderRadius: '50%', background: 'var(--brand-500)',
+                }} />
+              )}
+            </span>
+            {opt}
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
+function ConsentAll({ form, setForm }) {
+  const flags = ['agreeTerms','agreePrivacy','agreeExtra','agreeNotify','agreeMarketing'];
+  const all = flags.every(k => form[k]);
+  const toggleAll = () => {
+    const next = !all;
+    setForm((f) => ({
+      ...f,
+      agreeTerms: next, agreePrivacy: next,
+      agreeExtra: next, agreeNotify: next, agreeMarketing: next,
+    }));
+  };
+  return (
+    <button
+      type="button"
+      onClick={toggleAll}
+      style={{
+        display: 'flex', alignItems: 'center', gap: 12,
+        padding: '16px 18px', borderRadius: 12, textAlign: 'left',
+        border: `1px solid ${all ? 'var(--brand-500)' : 'var(--line)'}`,
+        background: all ? 'var(--brand-50)' : '#fafbfc',
+        color: 'var(--ink-900)', fontSize: 15, fontWeight: 700,
+        cursor: 'pointer', fontFamily: 'inherit', width: '100%',
+      }}
+    >
+      <CheckSquare checked={all} />
+      모든 항목에 동의합니다
+    </button>
+  );
+}
+
+function ConsentGroup({ title, children }) {
+  return (
+    <div>
+      <div style={{
+        fontSize: 12, fontWeight: 700, color: 'var(--ink-500)',
+        marginBottom: 8,
+      }}>{title}</div>
+      <div style={{
+        border: '1px solid var(--line)', borderRadius: 10, overflow: 'hidden',
+        display: 'flex', flexDirection: 'column',
+      }}>
+        {children}
+      </div>
+    </div>
+  );
+}
+
+function ConsentRow({ label, required, checked, onChange }) {
+  return (
+    <button
+      type="button"
+      onClick={onChange}
+      style={{
+        display: 'flex', alignItems: 'center', gap: 12,
+        padding: '14px 16px', textAlign: 'left',
+        border: 'none', background: 'transparent',
+        borderBottom: '1px solid var(--line-2)',
+        color: 'var(--ink-900)', fontSize: 14, fontWeight: 500,
+        cursor: 'pointer', fontFamily: 'inherit', width: '100%',
+      }}
+    >
+      <CheckSquare checked={checked} />
+      <span style={{ flex: 1 }}>
+        <span style={{
+          color: required ? 'var(--brand-500)' : 'var(--ink-500)',
+          fontSize: 12, fontWeight: 700, marginRight: 6,
+        }}>{required ? '[필수]' : '[선택]'}</span>
+        {label}
+      </span>
+      <span style={{ color: 'var(--ink-400)', fontSize: 12 }}>보기</span>
+    </button>
+  );
+}
+
+function CheckSquare({ checked }) {
+  return (
+    <span style={{
+      width: 20, height: 20, borderRadius: 6, flexShrink: 0,
+      border: `1.5px solid ${checked ? 'var(--brand-500)' : 'var(--ink-300)'}`,
+      background: checked ? 'var(--brand-500)' : '#fff',
+      display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+    }}>
+      {checked && (
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="3.5" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M20 6 9 17l-5-5" />
+        </svg>
+      )}
+    </span>
+  );
+}
+
+/* ============================================================
+   MY PAGE — 로그인 이후 마이페이지
+============================================================ */
+const MY_PROFILE = {
+  joined: '2026.03.12',
+  regions: ['경기', '서울'],
+  interests: ['일상 회복', '심리 상담', '커뮤니티·모임'],
+  participation: ['온라인', '오프라인'],
+};
+
+const MY_APPLICATIONS = [
+  { id: 1, title: '천천히, 다시 만나는 일상', org: '경기 청년센터', date: '2026.05.02', state: '신청 완료', variant: 'done' },
+  { id: 2, title: '방 안에서 세상으로, 온라인 살롱', org: '나나센터 수원', date: '2026.04.28', state: '검토 중', variant: 'pending' },
+  { id: 3, title: '동네 한 바퀴, 산책 클럽', org: '대전 청년정책본부', date: '2026.03.30', state: '참여 종료', variant: 'closed' },
+];
+
+function MyPage({ user, onLogin, onLogout, onMyPage, onHome, onNavAll, onOpen }) {
+  const bookmarked = PROGRAMS.filter((p) => [1, 2, 6].includes(p.id));
+
+  return (
+    <div data-screen-label="05 마이페이지" style={{ minHeight: '100vh', background: '#fff' }}>
+      <UtilityBar onLogin={onLogin} user={user} onLogout={onLogout} onMyPage={onMyPage} />
+      <MainNav onHome={onHome} onNavAll={onNavAll} />
+
+      <main style={{ maxWidth: 1240, margin: '0 auto', padding: '0 32px 80px' }}>
+        {/* Profile header */}
+        <section style={{
+          marginTop: 40, padding: 28,
+          border: '1px solid var(--line)', borderRadius: 18,
+          background: 'var(--bg-soft)',
+          display: 'flex', alignItems: 'center', gap: 22, flexWrap: 'wrap',
+        }}>
+          <div style={{
+            width: 72, height: 72, borderRadius: '50%',
+            background: 'var(--brand-500)', color: '#fff',
+            display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+            fontSize: 28, fontWeight: 800, flexShrink: 0,
+          }}>{user.name.slice(0, 1)}</div>
+          <div style={{ flex: 1, minWidth: 200 }}>
+            <div style={{ display: 'flex', alignItems: 'baseline', gap: 8 }}>
+              <h1 style={{
+                margin: 0, fontSize: 26, fontWeight: 800, color: 'var(--ink-900)',
+                letterSpacing: '-0.03em',
+              }}>{user.name}<span style={{ fontSize: 18, fontWeight: 600, color: 'var(--ink-600)' }}>님</span></h1>
+              <span style={{
+                padding: '3px 9px', borderRadius: 999, background: 'var(--brand-50)',
+                color: 'var(--brand-500)', fontSize: 11, fontWeight: 700,
+              }}>청년 회원</span>
+            </div>
+            <p style={{ margin: '6px 0 0', fontSize: 13, color: 'var(--ink-500)' }}>
+              {MY_PROFILE.joined} 가입 · 오늘도 한 걸음, 잘 오셨어요
+            </p>
+          </div>
+          <button style={{
+            height: 42, padding: '0 18px', borderRadius: 10,
+            border: '1px solid var(--line)', background: '#fff',
+            color: 'var(--ink-800)', fontSize: 14, fontWeight: 600,
+            display: 'inline-flex', alignItems: 'center', gap: 7,
+          }}>
+            <Icon.Edit width={15} height={15} />
+            프로필 수정
+          </button>
+        </section>
+
+        {/* Stat strip */}
+        <div style={{
+          marginTop: 14, display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 14,
+        }}>
+          {[
+            { value: bookmarked.length, label: '북마크한 프로그램', accent: 'var(--card-yellow)' },
+            { value: MY_APPLICATIONS.length, label: '신청한 프로그램', accent: 'var(--card-blue)' },
+            { value: 1, label: '참여 완료', accent: 'var(--card-mint)' },
+          ].map((s) => (
+            <div key={s.label} style={{
+              position: 'relative', overflow: 'hidden',
+              border: '1px solid var(--line)', borderRadius: 14,
+              background: '#fff', padding: '20px 22px',
+            }}>
+              <div style={{
+                position: 'absolute', top: 0, left: 0, width: 4, height: '100%', background: s.accent,
+              }} />
+              <div style={{ fontSize: 30, fontWeight: 800, color: 'var(--ink-900)', letterSpacing: '-0.03em', lineHeight: 1 }}>{s.value}</div>
+              <div style={{ marginTop: 8, fontSize: 13, fontWeight: 600, color: 'var(--ink-600)' }}>{s.label}</div>
+            </div>
+          ))}
+        </div>
+
+        {/* My interests */}
+        <section style={{ marginTop: 44 }}>
+          <MyPageHeading title="관심 정보" action="수정" />
+          <div style={{
+            border: '1px solid var(--line)', borderRadius: 14, background: '#fff',
+            padding: '6px 22px',
+          }}>
+            <MyInfoRow label="관심 지역" items={MY_PROFILE.regions} />
+            <MyInfoRow label="관심 주제" items={MY_PROFILE.interests} />
+            <MyInfoRow label="참여 방식" items={MY_PROFILE.participation} last />
+          </div>
+        </section>
+
+        {/* Bookmarked */}
+        <section style={{ marginTop: 44 }}>
+          <MyPageHeading title="북마크한 프로그램" action="전체 보기" />
+          <div style={{
+            display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 18,
+          }}>
+            {bookmarked.map((p) => (
+              <ProgramCard key={p.id} p={p} onClick={() => onOpen(p)} />
+            ))}
+          </div>
+        </section>
+
+        {/* Applications */}
+        <section style={{ marginTop: 44 }}>
+          <MyPageHeading title="신청 현황" />
+          <div style={{
+            border: '1px solid var(--line)', borderRadius: 14, background: '#fff', overflow: 'hidden',
+          }}>
+            {MY_APPLICATIONS.map((a, i) => {
+              const tone = {
+                done: { bg: 'var(--ink-900)', fg: '#fff' },
+                pending: { bg: 'var(--brand-50)', fg: 'var(--brand-500)' },
+                closed: { bg: 'var(--bg-soft)', fg: 'var(--ink-500)' },
+              }[a.variant];
+              return (
+                <div key={a.id} style={{
+                  display: 'flex', alignItems: 'center', gap: 16,
+                  padding: '18px 22px',
+                  borderTop: i === 0 ? 'none' : '1px solid var(--line-2)',
+                }}>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--ink-900)', letterSpacing: '-0.01em' }}>{a.title}</div>
+                    <div style={{ marginTop: 3, fontSize: 12, color: 'var(--ink-500)' }}>{a.org} · {a.date} 신청</div>
+                  </div>
+                  <span style={{
+                    padding: '6px 12px', borderRadius: 999,
+                    background: tone.bg, color: tone.fg,
+                    fontSize: 12, fontWeight: 700, flexShrink: 0,
+                  }}>{a.state}</span>
+                </div>
+              );
+            })}
+          </div>
+        </section>
+
+        {/* Account */}
+        <section style={{ marginTop: 44 }}>
+          <MyPageHeading title="계정 설정" />
+          <div style={{
+            border: '1px solid var(--line)', borderRadius: 14, background: '#fff', overflow: 'hidden',
+          }}>
+            {[
+              { label: '알림 설정', desc: '새 프로그램·마감 알림을 받아요' },
+              { label: '개인정보 관리', desc: '이메일·연락처를 변경해요' },
+            ].map((row, i) => (
+              <button key={row.label} style={{
+                width: '100%', textAlign: 'left',
+                display: 'flex', alignItems: 'center', gap: 16,
+                padding: '18px 22px', background: '#fff', border: 'none',
+                borderTop: i === 0 ? 'none' : '1px solid var(--line-2)', cursor: 'pointer',
+              }}>
+                <div style={{ flex: 1 }}>
+                  <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--ink-900)' }}>{row.label}</div>
+                  <div style={{ marginTop: 2, fontSize: 12, color: 'var(--ink-500)' }}>{row.desc}</div>
+                </div>
+                <Icon.ChevronR width={16} height={16} style={{ color: 'var(--ink-400)' }} />
+              </button>
+            ))}
+            <button
+              onClick={onLogout}
+              style={{
+                width: '100%', textAlign: 'left',
+                display: 'flex', alignItems: 'center',
+                padding: '18px 22px', background: '#fff', border: 'none',
+                borderTop: '1px solid var(--line-2)', cursor: 'pointer',
+                fontSize: 14, fontWeight: 700, color: 'var(--ink-500)',
+              }}
+            >
+              로그아웃
+            </button>
+          </div>
+        </section>
+      </main>
+
+      <Footer />
+    </div>
+  );
+}
+
+function MyPageHeading({ title, action }) {
+  return (
+    <div style={{
+      display: 'flex', alignItems: 'baseline', justifyContent: 'space-between',
+      marginBottom: 16,
+    }}>
+      <h2 style={{ margin: 0, fontSize: 20, fontWeight: 800, color: 'var(--ink-900)', letterSpacing: '-0.025em' }}>{title}</h2>
+      {action && (
+        <a href="#" onClick={(e) => e.preventDefault()} style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink-500)' }}>{action}</a>
+      )}
+    </div>
+  );
+}
+
+function MyInfoRow({ label, items, last }) {
+  return (
+    <div style={{
+      display: 'flex', alignItems: 'center', gap: 20,
+      padding: '18px 0',
+      borderBottom: last ? 'none' : '1px solid var(--line-2)',
+    }}>
+      <div style={{ width: 90, fontSize: 13, fontWeight: 700, color: 'var(--ink-600)', flexShrink: 0 }}>{label}</div>
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+        {items.map((t) => (
+          <span key={t} style={{
+            padding: '6px 12px', borderRadius: 999,
+            background: 'var(--brand-50)', color: 'var(--brand-500)',
+            fontSize: 13, fontWeight: 600,
+          }}>{t}</span>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+/* ============================================================
    APP
 ============================================================ */
 function App() {
   const [route, setRoute] = useState({ name: 'home' });
+  const [user, setUser] = useState({ name: '느린걸음' });
   const onOpen = (p) => { setRoute({ name: 'detail', program: p }); window.scrollTo({ top: 0, behavior: 'instant' }); };
   const onBack = () => { setRoute({ name: 'home' }); window.scrollTo({ top: 0, behavior: 'instant' }); };
   const onLogin = () => { setRoute({ name: 'login' }); window.scrollTo({ top: 0, behavior: 'instant' }); };
+  const onLogout = () => { setUser(null); setRoute({ name: 'home' }); window.scrollTo({ top: 0, behavior: 'instant' }); };
+  const onMyPage = () => { setRoute({ name: 'mypage' }); window.scrollTo({ top: 0, behavior: 'instant' }); };
+  const onLoginDone = () => { setUser({ name: '느린걸음' }); setRoute({ name: 'home' }); window.scrollTo({ top: 0, behavior: 'instant' }); };
   const onHome = () => { setRoute({ name: 'home' }); window.scrollTo({ top: 0, behavior: 'instant' }); };
   const onNavAll = () => { setRoute({ name: 'all' }); window.scrollTo({ top: 0, behavior: 'instant' }); };
+  const onSignup = () => { setRoute({ name: 'signup' }); window.scrollTo({ top: 0, behavior: 'instant' }); };
 
   if (route.name === 'login') {
-    return <LoginPage onBack={onBack} />;
+    return <LoginPage onBack={onBack} onSignup={onSignup} onLoginDone={onLoginDone} />;
+  }
+  if (route.name === 'signup') {
+    return <SignupPage onBack={onBack} onDone={onLoginDone} />;
   }
   if (route.name === 'detail') {
-    return <ProgramDetailPage program={route.program} onBack={onBack} onLogin={onLogin} />;
+    return <ProgramDetailPage program={route.program} onBack={onBack} onLogin={onLogin} user={user} onLogout={onLogout} onMyPage={onMyPage} />;
   }
-  return <ListPage mode={route.name} onOpen={onOpen} onLogin={onLogin} onHome={onHome} onNavAll={onNavAll} />;
+  if (route.name === 'mypage') {
+    return <MyPage user={user} onLogin={onLogin} onLogout={onLogout} onMyPage={onMyPage} onHome={onHome} onNavAll={onNavAll} onOpen={onOpen} />;
+  }
+  return <ListPage mode={route.name} onOpen={onOpen} onLogin={onLogin} onHome={onHome} onNavAll={onNavAll} user={user} onLogout={onLogout} onMyPage={onMyPage} />;
 }
 
 /* ============================================================
@@ -1812,8 +2804,8 @@ const POPULAR_PICKS = [
   { rank: 6, delta: '▲ 4', programId: 8 },
 ];
 
-function PopularCard({ entry, program, onClick }) {
-  const p = program || PROGRAMS.find((x) => x.id === entry.programId);
+function PopularCard({ entry, onClick }) {
+  const p = PROGRAMS.find((x) => x.id === entry.programId);
   if (!p) return null;
   const up = entry.delta.startsWith('▲');
   const down = entry.delta.startsWith('▼');
@@ -1833,24 +2825,14 @@ function PopularCard({ entry, program, onClick }) {
       onMouseLeave={(e) => { e.currentTarget.style.transform = ''; e.currentTarget.style.boxShadow = ''; }}
     >
       <div style={{
-        position: 'relative',
-        background: p.imageUrl ? `center / cover no-repeat url("${p.imageUrl}")` : p.bg,
-        height: 160,
+        position: 'relative', background: p.bg, height: 160,
         padding: 14, overflow: 'hidden',
         display: 'flex', flexDirection: 'column', justifyContent: 'space-between',
       }}>
-        {!p.imageUrl && (
-          <div aria-hidden style={{
-            position: 'absolute', right: -32, top: -28, width: 110, height: 110,
-            borderRadius: '50%', background: 'rgba(255,255,255,0.35)',
-          }} />
-        )}
-        {p.imageUrl && (
-          <div aria-hidden style={{
-            position: 'absolute', inset: 0,
-            background: 'linear-gradient(180deg, rgba(0,0,0,0.18), rgba(0,0,0,0.34))',
-          }} />
-        )}
+        <div aria-hidden style={{
+          position: 'absolute', right: -32, top: -28, width: 110, height: 110,
+          borderRadius: '50%', background: 'rgba(255,255,255,0.35)',
+        }} />
         <div style={{
           position: 'relative',
           display: 'inline-flex', alignItems: 'baseline', gap: 4, alignSelf: 'flex-start',
@@ -1977,6 +2959,73 @@ function OneShotCard({ p, onClick }) {
 }
 
 /* ----- Reviews ----- */
+const TRUST_STATS = [
+  { value: '2,480', unit: '명', label: '누적 참여 청년', sub: '프로그램에 함께한 인원', accent: 'var(--card-blue)' },
+  { value: '32', unit: '곳', label: '운영·협력 기관', sub: '전국 청년센터·재단·상담기관', accent: 'var(--card-yellow)' },
+  { value: '156', unit: '개', label: '진행 프로그램', sub: '온·오프라인 누적 운영', accent: 'var(--card-pink)' },
+  { value: '14', unit: '개', label: '운영 지역', sub: '전국 시·도 단위', accent: 'var(--card-mint)' },
+];
+
+function TrustStats() {
+  return (
+    <section style={{ marginTop: 56 }}>
+      <div style={{ marginBottom: 18 }}>
+        <div style={{
+          fontSize: 12, fontWeight: 600, color: 'var(--ink-500)',
+          letterSpacing: '-0.01em', marginBottom: 6,
+        }}>믿고 시작하세요</div>
+        <h2 style={{
+          margin: 0, fontSize: 22, fontWeight: 800, color: 'var(--ink-900)',
+          letterSpacing: '-0.025em',
+        }}>숫자로 보는 나와, 나왕</h2>
+        <p style={{
+          margin: '6px 0 0', fontSize: 13, color: 'var(--ink-500)',
+          letterSpacing: '-0.01em',
+        }}>전국의 기관과 청년이 함께 만들어가고 있어요</p>
+      </div>
+
+      <div style={{
+        display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 14,
+      }}>
+        {TRUST_STATS.map((s) => (
+          <div key={s.label} style={{
+            position: 'relative', overflow: 'hidden',
+            border: '1px solid var(--line)', borderRadius: 14,
+            background: '#fff', padding: '24px 22px',
+          }}>
+            <div style={{
+              position: 'absolute', top: 0, left: 0, width: 4, height: '100%',
+              background: s.accent,
+            }} />
+            <div style={{
+              display: 'flex', alignItems: 'baseline', gap: 3,
+              color: 'var(--ink-900)',
+            }}>
+              <span style={{
+                fontSize: 38, fontWeight: 800, letterSpacing: '-0.04em',
+                lineHeight: 1,
+              }}>{s.value}</span>
+              <span style={{ fontSize: 17, fontWeight: 700, color: 'var(--ink-600)' }}>{s.unit}</span>
+            </div>
+            <div style={{
+              marginTop: 12, fontSize: 14, fontWeight: 700, color: 'var(--ink-900)',
+              letterSpacing: '-0.01em',
+            }}>{s.label}</div>
+            <div style={{
+              marginTop: 3, fontSize: 12, color: 'var(--ink-500)', lineHeight: 1.5,
+            }}>{s.sub}</div>
+          </div>
+        ))}
+      </div>
+
+      <p style={{
+        margin: '14px 0 0', fontSize: 11, color: 'var(--ink-400)',
+        letterSpacing: '-0.01em',
+      }}>2026년 5월 누적 기준 · 매월 업데이트</p>
+    </section>
+  );
+}
+
 const REVIEWS = [
   { id: 'r-1', rating: 5,
     quote: '나와 비슷한 사람들을 만난 게 제일 커요. 처음으로 "나만 이런 게 아니구나" 싶었어요.',
@@ -2066,10 +3115,7 @@ function ReviewCard({ r, onClick }) {
   );
 }
 
-function ListPage({ mode = 'home', onOpen, onLogin, onHome, onNavAll }) {
-  const [programs, setPrograms] = useState([]);
-  const [loadingPrograms, setLoadingPrograms] = useState(true);
-  const [programError, setProgramError] = useState('');
+function ListPage({ mode = 'home', onOpen, onLogin, onHome, onNavAll, user, onLogout, onMyPage }) {
   const [filters, setFilters] = useState({
     region: [], level: [], mode: [],
     period: [], status: [], people: [],
@@ -2079,6 +3125,9 @@ function ListPage({ mode = 'home', onOpen, onLogin, onHome, onNavAll }) {
   const [view, setView] = useState('grid');
   const [page, setPage] = useState(1);
   const [sort, setSort] = useState('추천순');
+  const [programs, setPrograms] = useState([]);
+  const [loadingPrograms, setLoadingPrograms] = useState(true);
+  const [programError, setProgramError] = useState('');
 
   const handleFilter = (k, v) => {
     setFilters((f) => ({ ...f, [k]: v })); setPage(1);
@@ -2093,7 +3142,7 @@ function ListPage({ mode = 'home', onOpen, onLogin, onHome, onNavAll }) {
     if (mode === 'home') onNavAll && onNavAll();
   };
 
-  useEffect(() => {
+  React.useEffect(() => {
     let alive = true;
 
     async function loadPrograms() {
@@ -2105,9 +3154,8 @@ function ListPage({ mode = 'home', onOpen, onLogin, onHome, onNavAll }) {
         if (!res.ok) {
           throw new Error(data.message || '지원사업 카드를 불러오지 못했습니다.');
         }
-        if (Array.isArray(data.programs)) {
-          setPrograms(data.programs);
-        }
+
+        setPrograms(Array.isArray(data.programs) ? data.programs : []);
         setProgramError(
           Array.isArray(data.programs) && data.programs.length > 0
             ? ''
@@ -2148,26 +3196,22 @@ function ListPage({ mode = 'home', onOpen, onLogin, onHome, onNavAll }) {
   }, [programs, filters, appliedQuery]);
 
   const firstPageSections = useMemo(() => {
-    const source = programs;
-    const popularCount = Math.min(POPULAR_PICKS.length, source.length);
-    const nextStart = popularCount;
-    const nextEnd = Math.min(nextStart + 6, source.length);
-    const storyStart = nextEnd;
-    const storyEnd = Math.min(storyStart + 6, source.length);
+    const popularCount = Math.min(POPULAR_PICKS.length, programs.length);
+    const lightStart = popularCount;
+    const lightEnd = Math.min(lightStart + 6, programs.length);
 
     return {
-      popular: source.slice(0, popularCount).map((program, index) => ({
+      popular: programs.slice(0, popularCount).map((program, index) => ({
         program,
         entry: { ...POPULAR_PICKS[index], rank: index + 1 },
       })),
-      lightStart: source.slice(nextStart, nextEnd),
-      stories: source.slice(storyStart, storyEnd),
+      lightStart: programs.slice(lightStart, lightEnd),
     };
   }, [programs]);
 
   return (
     <div data-screen-label={mode === 'all' ? '01b 지원사업 전체' : '01 홈'}>
-      <UtilityBar onLogin={onLogin} />
+      <UtilityBar onLogin={onLogin} user={user} onLogout={onLogout} onMyPage={onMyPage} />
       <MainNav onHome={onHome} onNavAll={onNavAll} active={mode} />
 
       {/* Top centered search + filters */}
@@ -2231,17 +3275,7 @@ function ListPage({ mode = 'home', onOpen, onLogin, onHome, onNavAll }) {
               ))}
             </CurationRow>
 
-            <CurationRow
-              eyebrow="먼저 다녀온 이야기"
-              title="사업 후기"
-              subtitle="참여자가 직접 남긴 솔직한 후기예요"
-            >
-              {firstPageSections.stories.map((p) => (
-                <div key={p.id} style={{ flex: '0 0 264px', scrollSnapAlign: 'start' }}>
-                  <ProgramCard p={p} onClick={() => onOpen(p)} />
-                </div>
-              ))}
-            </CurationRow>
+            <TrustStats />
           </React.Fragment>
         )}
 
@@ -2252,7 +3286,7 @@ function ListPage({ mode = 'home', onOpen, onLogin, onHome, onNavAll }) {
               <h1 style={{
                 margin: 0, fontSize: 32, fontWeight: 800, color: 'var(--ink-900)',
                 letterSpacing: '-0.03em',
-              }}>지원 사업</h1>
+              }}>천천히, 다시 시작하는 곳</h1>
             </div>
 
             {/* Result toolbar */}
@@ -2376,6 +3410,6 @@ function ListView({ programs, onOpen }) {
   );
 }
 
-export default function Page() {
-  return <App />;
-}
+export { LoginPage };
+export default App;
+
