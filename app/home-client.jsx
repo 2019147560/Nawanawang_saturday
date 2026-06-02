@@ -2693,7 +2693,7 @@ function MyInfoRow({ label, items, last }) {
 ============================================================ */
 function App() {
   const [route, setRoute] = useState({ name: 'home' });
-  const [user, setUser] = useState({ name: '느린걸음' });
+  const [user, setUser] = useState(null);
   const onOpen = (p) => { setRoute({ name: 'detail', program: p }); window.scrollTo({ top: 0, behavior: 'instant' }); };
   const onBack = () => { setRoute({ name: 'home' }); window.scrollTo({ top: 0, behavior: 'instant' }); };
   const onLogin = () => { setRoute({ name: 'login' }); window.scrollTo({ top: 0, behavior: 'instant' }); };
@@ -2804,8 +2804,8 @@ const POPULAR_PICKS = [
   { rank: 6, delta: '▲ 4', programId: 8 },
 ];
 
-function PopularCard({ entry, onClick }) {
-  const p = PROGRAMS.find((x) => x.id === entry.programId);
+function PopularCard({ entry, program, onClick }) {
+  const p = program || PROGRAMS.find((x) => x.id === entry.programId);
   if (!p) return null;
   const up = entry.delta.startsWith('▲');
   const down = entry.delta.startsWith('▼');
