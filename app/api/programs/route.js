@@ -17,14 +17,37 @@ const CARD_BACKGROUNDS = [
 function getSupabaseConfig() {
   const url =
     process.env.SUPABASE_URL ||
+    process.env.SUPABASE_PROJECT_URL ||
     process.env.NEXT_PUBLIC_SUPABASE_URL;
 
   const key =
     process.env.SUPABASE_SERVICE_ROLE_KEY ||
+    process.env.SUPABASE_SERVICE_KEY ||
     process.env.SUPABASE_ANON_KEY ||
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
   return { url: url?.replace(/\/$/, ''), key };
+}
+
+function getEnvDiagnostics() {
+  return {
+    hasSupabaseUrl: Boolean(
+      process.env.SUPABASE_URL ||
+      process.env.SUPABASE_PROJECT_URL ||
+      process.env.NEXT_PUBLIC_SUPABASE_URL,
+    ),
+    hasSupabaseKey: Boolean(
+      process.env.SUPABASE_SERVICE_ROLE_KEY ||
+      process.env.SUPABASE_SERVICE_KEY ||
+      process.env.SUPABASE_ANON_KEY ||
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
+    ),
+    hasServiceRoleKey: Boolean(
+      process.env.SUPABASE_SERVICE_ROLE_KEY ||
+      process.env.SUPABASE_SERVICE_KEY,
+    ),
+    hasDatabaseUrl: Boolean(process.env.DATABASE_URL),
+  };
 }
 
 async function supabaseFetch(path) {
@@ -138,12 +161,6 @@ function mapEventRow(row, index) {
   };
 }
 
-async function fetchProgramsFromSupabase() {
-  const rows = await supabaseFetch('programs?select=*,program_chips(chip)&order=id.asc');
-  if (!rows) return null;
-  return rows.map(mapProgramRow);
-}
-
 async function fetchEventsFromSupabase() {
   const rows = await supabaseFetch(
     'event?select=id,name,link,start_at_recruitment_period,end_at_recruitment_period,start_at_program_period,end_at_program_period,enterprise_name,purpose,is_online,region,is_recruit,times,participants,hooking_comment,image_rul&order=number.asc.nullslast,id.asc',
@@ -152,12 +169,28 @@ async function fetchEventsFromSupabase() {
   return rows.map(mapEventRow);
 }
 
-async function trySource(source, loader) {
+async function fetchProgramsFromSupabase() {
+  const rows = await supabaseFetch('programs?select=*,program_chips(chip)&order=id.asc');
+  if (!rows) return null;
+  return rows.map(mapProgramRow);
+}
+
+async function trySource(source, loader, diagnostics) {
   try {
     const programs = await loader();
+    diagnostics.sources.push({
+      source,
+      status: Array.isArray(programs) && programs.length > 0 ? 'ok' : 'empty',
+      count: Array.isArray(programs) ? programs.length : 0,
+    });
     return Array.isArray(programs) && programs.length > 0 ? programs : null;
   } catch (error) {
     console.warn(`Skipping ${source} program source:`, error);
+    diagnostics.sources.push({
+      source,
+      status: 'error',
+      message: error instanceof Error ? error.message : String(error),
+    });
     return null;
   }
 }
@@ -222,7 +255,13 @@ async function fetchEventsFromPostgres() {
   return result.rows.map(mapEventRow);
 }
 
-export async function GET() {
+export async function GET(request) {
+  const debug = new URL(request.url).searchParams.get('debug') === '1';
+  const diagnostics = {
+    env: getEnvDiagnostics(),
+    sources: [],
+  };
+
   const sources = [
     ['supabase:event', fetchEventsFromSupabase],
     ['supabase:programs', fetchProgramsFromSupabase],
@@ -231,11 +270,13 @@ export async function GET() {
   ];
 
   for (const [source, loader] of sources) {
-    const programs = await trySource(source, loader);
+    const programs = await trySource(source, loader, diagnostics);
     if (programs) {
-      return NextResponse.json({ programs, source });
+      return NextResponse.json(debug ? { programs, source, diagnostics } : { programs, source });
     }
   }
 
-  return NextResponse.json({ programs: [], source: 'fallback' });
+  return NextResponse.json(
+    debug ? { programs: [], source: 'fallback', diagnostics } : { programs: [], source: 'fallback' },
+  );
 }
