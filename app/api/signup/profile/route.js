@@ -7,12 +7,12 @@ export async function POST(request) {
   const session = await getServerSession(authOptions);
   const body = await request.json();
 
-  const email = String(body.email || session?.user?.email || '').trim().toLowerCase();
+  const email = String(session?.user?.email || '').trim().toLowerCase();
   const region = String(body.region || '').trim();
   const persona = String(body.persona || '').trim();
 
   if (!email) {
-    return NextResponse.json({ message: '로그인 정보가 필요합니다.' }, { status: 401 });
+    return NextResponse.json({ message: '로그인이 필요합니다.' }, { status: 401 });
   }
 
   if (!region || !persona) {

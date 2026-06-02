@@ -1,7 +1,7 @@
 ﻿'use client';
 
 import React, { useMemo, useState } from 'react';
-import { signIn } from 'next-auth/react';
+import { signIn, signOut, useSession } from 'next-auth/react';
 
 
 /* ============================================================
@@ -2693,14 +2693,17 @@ function MyInfoRow({ label, items, last }) {
    APP
 ============================================================ */
 function App() {
+  const { data: session } = useSession();
   const [route, setRoute] = useState({ name: 'home' });
-  const [user, setUser] = useState(null);
+  const user = session?.user
+    ? { name: session.user.name || session.user.email || '회원' }
+    : null;
   const onOpen = (p) => { setRoute({ name: 'detail', program: p }); window.scrollTo({ top: 0, behavior: 'instant' }); };
   const onBack = () => { setRoute({ name: 'home' }); window.scrollTo({ top: 0, behavior: 'instant' }); };
   const onLogin = () => { setRoute({ name: 'login' }); window.scrollTo({ top: 0, behavior: 'instant' }); };
-  const onLogout = () => { setUser(null); setRoute({ name: 'home' }); window.scrollTo({ top: 0, behavior: 'instant' }); };
+  const onLogout = () => { signOut({ callbackUrl: '/' }); };
   const onMyPage = () => { setRoute({ name: 'mypage' }); window.scrollTo({ top: 0, behavior: 'instant' }); };
-  const onLoginDone = () => { setUser({ name: '느린걸음' }); setRoute({ name: 'home' }); window.scrollTo({ top: 0, behavior: 'instant' }); };
+  const onLoginDone = () => { setRoute({ name: 'home' }); window.scrollTo({ top: 0, behavior: 'instant' }); };
   const onHome = () => { setRoute({ name: 'home' }); window.scrollTo({ top: 0, behavior: 'instant' }); };
   const onNavAll = () => { setRoute({ name: 'all' }); window.scrollTo({ top: 0, behavior: 'instant' }); };
   const onSignup = () => { setRoute({ name: 'signup' }); window.scrollTo({ top: 0, behavior: 'instant' }); };

@@ -13,11 +13,15 @@ export async function POST(request) {
   const body = await request.json();
 
   const nickname = String(body.nickname || '').trim();
-  const email = String(body.email || session?.user?.email || '').trim().toLowerCase();
+  const email = String(session?.user?.email || '').trim().toLowerCase();
   const phone = normalizePhone(body.phone);
   const phoneValue = phone || null;
-  const provider = session?.user?.provider || body.provider || null;
-  const providerAccountId = session?.user?.id || null;
+  const provider = session?.user?.provider || null;
+  const providerAccountId = session?.user?.providerAccountId || session?.user?.id || null;
+
+  if (!email) {
+    return NextResponse.json({ message: '로그인이 필요합니다.' }, { status: 401 });
+  }
 
   if (nickname.length < 2 || nickname.length > 30) {
     return NextResponse.json({ message: '닉네임은 2~30자로 입력해주세요.' }, { status: 400 });
@@ -79,15 +83,25 @@ export async function POST(request) {
   const user = userResult.rows[0];
 
   if (provider && providerAccountId) {
-    await query(
-      `
-        INSERT INTO oauth_accounts (user_id, provider, provider_account_id)
-        VALUES ($1, $2, $3)
-        ON CONFLICT (provider, provider_account_id)
-        DO UPDATE SET user_id = EXCLUDED.user_id, updated_at = NOW()
-      `,
-      [user.id, provider, providerAccountId],
+    const accountResult = await query(
+      'SELECT id FROM oauth_accounts WHERE provider = $1 AND provider_account_id = $2 LIMIT 1',
+      [provider, providerAccountId],
     );
+
+    if (accountResult.rowCount > 0) {
+      await query(
+        'UPDATE oauth_accounts SET user_id = $1, updated_at = NOW() WHERE id = $2',
+        [user.id, accountResult.rows[0].id],
+      );
+    } else {
+      await query(
+        `
+          INSERT INTO oauth_accounts (user_id, provider, provider_account_id)
+          VALUES ($1, $2, $3)
+        `,
+        [user.id, provider, providerAccountId],
+      );
+    }
   }
 
   await query(
