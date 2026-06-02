@@ -1,6 +1,7 @@
 ﻿'use client';
 
 import React, { useMemo, useState } from 'react';
+import { signIn } from 'next-auth/react';
 
 
 /* ============================================================
@@ -2705,7 +2706,15 @@ function App() {
   const onSignup = () => { setRoute({ name: 'signup' }); window.scrollTo({ top: 0, behavior: 'instant' }); };
 
   if (route.name === 'login') {
-    return <LoginPage onBack={onBack} onSignup={onSignup} onLoginDone={onLoginDone} />;
+    return (
+      <LoginPage
+        onBack={onBack}
+        onSignup={onSignup}
+        onLoginDone={onLoginDone}
+        onGoogleLogin={() => signIn('google', { callbackUrl: '/signup-info?p=google' })}
+        onKakaoLogin={() => signIn('kakao', { callbackUrl: '/signup-info?p=kakao' })}
+      />
+    );
   }
   if (route.name === 'signup') {
     return <SignupPage onBack={onBack} onDone={onLoginDone} />;
