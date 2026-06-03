@@ -142,6 +142,7 @@ export default function SignupInfoStep3() {
   const [persona, setPersona] = useStateP3('');
   const [saving, setSaving] = useStateP3(false);
   const [submitError, setSubmitError] = useStateP3('');
+  const [completed, setCompleted] = useStateP3(false);
 
   const canSubmit = region && persona && !saving;
 
@@ -164,8 +165,74 @@ export default function SignupInfoStep3() {
       return;
     }
 
-    router.push('/');
+    setCompleted(true);
   };
+
+  if (completed) {
+    return (
+      <div className="page-bg">
+        <header style={{
+          borderBottom: '1px solid var(--line-2)', background: 'rgba(255,255,255,0.85)',
+          backdropFilter: 'blur(8px)',
+          position: 'sticky', top: 0, zIndex: 10,
+        }}>
+          <div style={{
+            maxWidth: 1240, margin: '0 auto', padding: '0 32px',
+            height: 64, display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+          }}>
+            <HeaderLogoP3 />
+          </div>
+        </header>
+
+        <main style={{
+          maxWidth: 520, margin: '0 auto', padding: '72px 24px 96px',
+        }}>
+          <section style={{
+            background: '#fff',
+            border: '1px solid var(--line)',
+            borderRadius: 18,
+            padding: '44px 40px 36px',
+            textAlign: 'center',
+            boxShadow: '0 1px 2px rgba(15,23,42,0.04), 0 12px 40px rgba(15,23,42,0.04)',
+          }}>
+            <div style={{
+              width: 58, height: 58, borderRadius: '50%',
+              background: 'var(--brand-50)', color: 'var(--brand-500)',
+              display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+              marginBottom: 20,
+            }}>
+              <SIcon.Check width={28} height={28} />
+            </div>
+            <h1 style={{
+              margin: 0, fontSize: 26, fontWeight: 800,
+              color: 'var(--ink-900)', letterSpacing: '-0.025em',
+            }}>
+              가입이 완료됐어요
+            </h1>
+            <p style={{
+              margin: '12px 0 0', fontSize: 14, color: 'var(--ink-500)', lineHeight: 1.65,
+            }}>
+              입력한 정보가 저장됐습니다.<br />
+              이제 맞춤 지원사업을 확인할 수 있어요.
+            </p>
+            <button
+              type="button"
+              onClick={() => router.push('/')}
+              style={{
+                marginTop: 30,
+                width: '100%', height: 52,
+                borderRadius: 12, border: 'none',
+                background: 'var(--brand-500)', color: '#fff',
+                fontSize: 15, fontWeight: 700,
+              }}
+            >
+              홈으로 가기
+            </button>
+          </section>
+        </main>
+      </div>
+    );
+  }
 
   return (
     <div className="page-bg">
