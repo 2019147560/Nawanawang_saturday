@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { query } from '../../../lib/db';
+import { getSupabaseConfig, supabaseRequest } from '../../../lib/supabase-rest';
 
 export const dynamic = 'force-dynamic';
 
@@ -14,60 +15,18 @@ const CARD_BACKGROUNDS = [
   'var(--card-mint)',
 ];
 
-function getSupabaseConfig() {
-  const url =
-    process.env.SUPABASE_URL ||
-    process.env.SUPABASE_PROJECT_URL ||
-    process.env.NEXT_PUBLIC_SUPABASE_URL;
-
-  const key =
-    process.env.SUPABASE_SERVICE_ROLE_KEY ||
-    process.env.SUPABASE_SERVICE_KEY ||
-    process.env.SUPABASE_ANON_KEY ||
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-
-  return { url: url?.replace(/\/$/, ''), key };
-}
-
 function getEnvDiagnostics() {
+  const { url, key } = getSupabaseConfig();
+
   return {
-    hasSupabaseUrl: Boolean(
-      process.env.SUPABASE_URL ||
-      process.env.SUPABASE_PROJECT_URL ||
-      process.env.NEXT_PUBLIC_SUPABASE_URL,
-    ),
-    hasSupabaseKey: Boolean(
-      process.env.SUPABASE_SERVICE_ROLE_KEY ||
-      process.env.SUPABASE_SERVICE_KEY ||
-      process.env.SUPABASE_ANON_KEY ||
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
-    ),
+    hasSupabaseUrl: Boolean(url),
+    hasSupabaseKey: Boolean(key),
     hasServiceRoleKey: Boolean(
       process.env.SUPABASE_SERVICE_ROLE_KEY ||
       process.env.SUPABASE_SERVICE_KEY,
     ),
     hasDatabaseUrl: Boolean(process.env.DATABASE_URL),
   };
-}
-
-async function supabaseFetch(path) {
-  const { url, key } = getSupabaseConfig();
-  if (!url || !key) return null;
-
-  const res = await fetch(`${url}/rest/v1/${path}`, {
-    headers: {
-      apikey: key,
-      Authorization: `Bearer ${key}`,
-    },
-    cache: 'no-store',
-  });
-
-  if (!res.ok) {
-    const text = await res.text();
-    throw new Error(`Supabase request failed: ${res.status} ${text}`);
-  }
-
-  return res.json();
 }
 
 function formatDate(value) {
@@ -113,66 +72,104 @@ function compactChips(values) {
     .filter(Boolean);
 }
 
-function mapProgramRow(row, index) {
-  const chips = Array.isArray(row.program_chips)
-    ? row.program_chips.map((item) => item.chip)
+function normalizeDetailRow(row) {
+  const program = row.programs || row.program || row;
+  const chips = Array.isArray(program.program_chips)
+    ? program.program_chips.map((item) => item.chip)
     : row.chips;
 
-  const status = getRecruitStatus(row.deadline, row.status);
-  const dDay = getDDay(row.deadline, row.d_day);
-
   return {
-    id: row.id,
-    tag: row.tag || '지원사업',
-    dDay,
-    title: row.title || '제목 없음',
-    org: row.org || '',
-    status,
-    bg: row.bg || CARD_BACKGROUNDS[index % CARD_BACKGROUNDS.length],
-    chips: chips?.length ? chips : compactChips([status, row.org]),
-    weeks: row.weeks || '',
-    deadline: row.deadline ? `마감 ${formatDate(row.deadline)}` : '상시 모집',
-    statusVariant: getStatusVariant(status, dDay, row.status_variant),
+    ...program,
+    ...row,
+    id: program.id || row.program_id || row.id,
+    tag: row.purpose || program.tag,
+    title: program.title,
+    org: row.org_name || program.org,
+    chips,
   };
 }
 
-function mapEventRow(row, index) {
-  const status = getRecruitStatus(row.end_at_recruitment_period, row.is_recruit);
-  const dDay = getDDay(row.end_at_recruitment_period);
-  const weeks = row.times ? `${row.times}회` : compactChips([
-    row.start_at_program_period && formatDate(row.start_at_program_period),
-    row.end_at_program_period && formatDate(row.end_at_program_period),
-  ]).join(' - ');
+function mapProgramDetailRow(row, index) {
+  const data = normalizeDetailRow(row);
+  const status = getRecruitStatus(data.deadline, data.status);
+  const dDay = getDDay(data.deadline, data.d_day);
+  const chips = data.chips?.length
+    ? data.chips
+    : compactChips([status, data.region, data.purpose, data.org]);
 
   return {
-    id: row.id,
-    tag: row.purpose || '지원사업',
+    id: data.id,
+    tag: data.purpose || data.tag || '지원사업',
     dDay,
-    title: row.name || row.hooking_comment || '제목 없음',
-    org: row.enterprise_name || '',
+    title: data.title || data.intro || '제목 없음',
+    org: data.org || '',
     status,
-    bg: row.image_rul || CARD_BACKGROUNDS[index % CARD_BACKGROUNDS.length],
-    chips: compactChips([status, row.region, row.is_online, row.participants]),
-    weeks,
-    deadline: row.end_at_recruitment_period ? `마감 ${formatDate(row.end_at_recruitment_period)}` : '상시 모집',
-    statusVariant: getStatusVariant(status, dDay),
-    link: row.link || '',
-    imageUrl: row.image_rul || '',
+    bg: data.bg || CARD_BACKGROUNDS[index % CARD_BACKGROUNDS.length],
+    chips,
+    weeks: data.weeks || '',
+    deadline: data.deadline ? `마감 ${formatDate(data.deadline)}` : '상시 모집',
+    statusVariant: getStatusVariant(status, dDay, data.status_variant),
+    description: data.description || '',
+    qualification: data.qualification || '',
+    region: data.region || '',
+    phone: data.phone || '',
+    kakao: data.kakao || '',
+    homepage: data.homepage || '',
+    email: data.email || '',
+    purpose: data.purpose || '',
+    viewCount: data.view_count ?? null,
   };
 }
 
-async function fetchEventsFromSupabase() {
-  const rows = await supabaseFetch(
-    'event?select=id,name,link,start_at_recruitment_period,end_at_recruitment_period,start_at_program_period,end_at_program_period,enterprise_name,purpose,is_online,region,is_recruit,times,participants,hooking_comment,image_rul&order=number.asc.nullslast,id.asc',
+async function fetchProgramDetailsFromSupabase() {
+  const rows = await supabaseRequest(
+    'program_details?select=program_id,intro,description,qualification,org_name,region,phone,kakao,homepage,email,purpose,view_count,programs(id,tag,d_day,title,org,status,bg,weeks,deadline,status_variant,program_chips(chip))&order=view_count.desc.nullslast,program_id.asc',
   );
   if (!rows) return null;
-  return rows.map(mapEventRow);
+  return rows.map(mapProgramDetailRow);
 }
 
-async function fetchProgramsFromSupabase() {
-  const rows = await supabaseFetch('programs?select=*,program_chips(chip)&order=id.asc');
-  if (!rows) return null;
-  return rows.map(mapProgramRow);
+async function fetchProgramDetailsFromPostgres() {
+  if (!process.env.DATABASE_URL) return null;
+
+  const result = await query(
+    `
+      SELECT
+        pd.program_id,
+        pd.intro,
+        pd.description,
+        pd.qualification,
+        pd.org_name,
+        pd.region,
+        pd.phone,
+        pd.kakao,
+        pd.homepage,
+        pd.email,
+        pd.purpose,
+        pd.view_count,
+        p.id,
+        p.tag,
+        p.d_day,
+        p.title,
+        p.org,
+        p.status,
+        p.bg,
+        p.weeks,
+        p.deadline,
+        p.status_variant,
+        COALESCE(
+          array_agg(pc.chip ORDER BY pc.id) FILTER (WHERE pc.chip IS NOT NULL),
+          '{}'
+        ) AS chips
+      FROM program_details pd
+      JOIN programs p ON p.id = pd.program_id
+      LEFT JOIN program_chips pc ON pc.program_id = p.id
+      GROUP BY pd.program_id, p.id
+      ORDER BY pd.view_count DESC NULLS LAST, pd.program_id ASC
+    `,
+  );
+
+  return result.rows.map(mapProgramDetailRow);
 }
 
 async function trySource(source, loader, diagnostics) {
@@ -195,66 +192,6 @@ async function trySource(source, loader, diagnostics) {
   }
 }
 
-async function fetchProgramsFromPostgres() {
-  if (!process.env.DATABASE_URL) return null;
-
-  const result = await query(
-    `
-      SELECT
-        p.id,
-        p.tag,
-        p.d_day,
-        p.title,
-        p.org,
-        p.status,
-        p.bg,
-        p.weeks,
-        p.deadline,
-        p.status_variant,
-        COALESCE(
-          array_agg(pc.chip ORDER BY pc.id) FILTER (WHERE pc.chip IS NOT NULL),
-          '{}'
-        ) AS chips
-      FROM programs p
-      LEFT JOIN program_chips pc ON pc.program_id = p.id
-      GROUP BY p.id
-      ORDER BY p.id
-    `,
-  );
-
-  return result.rows.map(mapProgramRow);
-}
-
-async function fetchEventsFromPostgres() {
-  if (!process.env.DATABASE_URL) return null;
-
-  const result = await query(
-    `
-      SELECT
-        id,
-        name,
-        link,
-        start_at_recruitment_period,
-        end_at_recruitment_period,
-        start_at_program_period,
-        end_at_program_period,
-        enterprise_name,
-        purpose,
-        is_online,
-        region,
-        is_recruit,
-        times,
-        participants,
-        hooking_comment,
-        image_rul
-      FROM event
-      ORDER BY COALESCE(number, id), id
-    `,
-  );
-
-  return result.rows.map(mapEventRow);
-}
-
 export async function GET(request) {
   const debug = new URL(request.url).searchParams.get('debug') === '1';
   const diagnostics = {
@@ -263,10 +200,8 @@ export async function GET(request) {
   };
 
   const sources = [
-    ['supabase:event', fetchEventsFromSupabase],
-    ['supabase:programs', fetchProgramsFromSupabase],
-    ['postgres:event', fetchEventsFromPostgres],
-    ['postgres:programs', fetchProgramsFromPostgres],
+    ['supabase:program_details', fetchProgramDetailsFromSupabase],
+    ['postgres:program_details', fetchProgramDetailsFromPostgres],
   ];
 
   for (const [source, loader] of sources) {
