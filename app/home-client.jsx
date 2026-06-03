@@ -1494,6 +1494,23 @@ const DETAIL_DATA = {
 
 function ProgramDetailPage({ program, onBack, onLogin, user, onLogout, onMyPage }) {
   const p = program;
+  const detail = {
+    intro: p.intro || DETAIL_DATA.intro,
+    description: p.description || DETAIL_DATA.description,
+    qualification: p.qualification || DETAIL_DATA.qualification,
+    org: {
+      name: p.org || DETAIL_DATA.org.name,
+      region: p.region || DETAIL_DATA.org.region,
+      phone: p.phone || DETAIL_DATA.org.phone,
+      kakao: p.kakao || DETAIL_DATA.org.kakao,
+      homepage: p.homepage || p.link || DETAIL_DATA.org.homepage,
+      email: p.email || DETAIL_DATA.org.email,
+    },
+  };
+  const chips = Array.isArray(p.chips) ? p.chips : [];
+  const deadlineText = p.deadline ? p.deadline.replace('마감 ', '') : '상시 모집';
+  const applyUrl = detail.org.homepage;
+
   return (
     <div data-screen-label="02 지원사업 상세">
       <UtilityBar onLogin={onLogin} user={user} onLogout={onLogout} onMyPage={onMyPage} />
@@ -1551,7 +1568,7 @@ function ProgramDetailPage({ program, onBack, onLogin, user, onLogout, onMyPage 
           <div>
             {/* Tags */}
             <div style={{ display: 'flex', gap: 6, marginBottom: 16 }}>
-              {p.chips.map((c, i) => {
+              {chips.map((c, i) => {
                 const isFirst = i === 0;
                 const bg = isFirst ? '#e6f4ec' : '#f3f4f7';
                 const fg = isFirst ? '#1f7a4d' : 'var(--ink-700)';
@@ -1565,7 +1582,15 @@ function ProgramDetailPage({ program, onBack, onLogin, user, onLogout, onMyPage 
               <span style={{
                 background: '#f3f4f7', color: 'var(--ink-700)',
                 padding: '5px 10px', borderRadius: 6, fontSize: 12, fontWeight: 600,
-              }}>회복 프로그램</span>
+              }}>{p.purpose || p.tag || '지원사업'}</span>
+              {p.viewCount != null && (
+                <span style={{
+                  background: 'var(--brand-50)', color: 'var(--brand-500)',
+                  padding: '5px 10px', borderRadius: 6, fontSize: 12, fontWeight: 700,
+                }}>
+                  조회 {Number(p.viewCount).toLocaleString()}회
+                </span>
+              )}
             </div>
 
             {/* Title */}
@@ -1576,7 +1601,7 @@ function ProgramDetailPage({ program, onBack, onLogin, user, onLogout, onMyPage 
             <p style={{
               marginTop: 12, marginBottom: 28, fontSize: 14, color: 'var(--ink-600)',
               lineHeight: 1.6,
-            }}>{DETAIL_DATA.intro}</p>
+            }}>{detail.intro}</p>
 
             {/* Info table */}
             <table style={{
@@ -1587,34 +1612,34 @@ function ProgramDetailPage({ program, onBack, onLogin, user, onLogout, onMyPage 
               <tbody>
                 <tr>
                   <th style={tableTh}>주관 기관</th>
-                  <td style={tableTd}>{DETAIL_DATA.org.name}</td>
+                  <td style={tableTd}>{detail.org.name}</td>
                   <th style={tableTh}>진행 지역</th>
-                  <td style={tableTd}>{DETAIL_DATA.org.region}</td>
+                  <td style={tableTd}>{detail.org.region || '미정'}</td>
                 </tr>
                 <tr>
                   <th style={tableTh}>진행 형태</th>
-                  <td style={tableTd}>온·오프라인</td>
+                  <td style={tableTd}>{chips.find((chip) => String(chip).includes('온라인')) || '상세 안내 참고'}</td>
                   <th style={tableTh}>참여 기간</th>
-                  <td style={tableTd}>{p.weeks}</td>
+                  <td style={tableTd}>{p.weeks || '상세 안내 참고'}</td>
                 </tr>
                 <tr>
                   <th style={tableTh}>신청 마감</th>
-                  <td style={tableTd}>{p.deadline.replace('마감 ', '')}</td>
+                  <td style={tableTd}>{deadlineText}</td>
                   <th style={tableTh}>모집 인원</th>
-                  <td style={tableTd}>12명</td>
+                  <td style={tableTd}>{chips.find((chip) => String(chip).includes('명')) || '상세 안내 참고'}</td>
                 </tr>
               </tbody>
             </table>
 
             <DetailSection title="프로그램 소개">
               <p style={{ margin: 0, fontSize: 14, color: 'var(--ink-700)', lineHeight: 1.75 }}>
-                {DETAIL_DATA.description}
+                {detail.description}
               </p>
             </DetailSection>
 
             <DetailSection title="신청자격">
               <p style={{ margin: 0, fontSize: 14, color: 'var(--ink-700)', lineHeight: 1.75 }}>
-                {DETAIL_DATA.qualification}
+                {detail.qualification}
               </p>
             </DetailSection>
 
@@ -1664,17 +1689,17 @@ function ProgramDetailPage({ program, onBack, onLogin, user, onLogout, onMyPage 
               </div>
               <div style={{ fontSize: 12, color: 'var(--ink-500)', marginBottom: 4 }}>주최·주관 기관</div>
               <div style={{ fontSize: 16, fontWeight: 700, color: 'var(--ink-900)', marginBottom: 16 }}>
-                {DETAIL_DATA.org.name}
+                {detail.org.name}
               </div>
               <div style={{ fontSize: 12, color: 'var(--ink-500)', marginBottom: 8 }}>문의 창구</div>
               <ul style={{
                 listStyle: 'none', padding: 0, margin: 0, fontSize: 13,
                 display: 'flex', flexDirection: 'column', gap: 8, color: 'var(--ink-700)',
               }}>
-                <li style={contactItem}>📞 {DETAIL_DATA.org.phone}</li>
-                <li style={contactItem}>💬 카카오톡: {DETAIL_DATA.org.kakao}</li>
-                <li style={contactItem}>🔗 오픈채팅: {DETAIL_DATA.org.homepage}</li>
-                <li style={contactItem}>✉ {DETAIL_DATA.org.email}</li>
+                {detail.org.phone && <li style={contactItem}>📞 {detail.org.phone}</li>}
+                {detail.org.kakao && <li style={contactItem}>💬 카카오톡: {detail.org.kakao}</li>}
+                {detail.org.homepage && <li style={contactItem}>🔗 홈페이지: {detail.org.homepage}</li>}
+                {detail.org.email && <li style={contactItem}>✉ {detail.org.email}</li>}
               </ul>
             </div>
           </div>
@@ -1687,17 +1712,23 @@ function ProgramDetailPage({ program, onBack, onLogin, user, onLogout, onMyPage 
               padding: 22, background: '#fff',
             }}>
               <dl style={{ margin: 0, fontSize: 13 }}>
-                <SidebarRow label="기간" value={p.weeks} />
-                <SidebarRow label="진행 형태" value="온·오프라인" />
-                <SidebarRow label="지역" value="경기" />
-                <SidebarRow label="신청 마감" value={p.deadline.replace('마감 ', '')} last />
+                <SidebarRow label="기간" value={p.weeks || '상세 안내 참고'} />
+                <SidebarRow label="지원 유형" value={p.purpose || p.tag || '지원사업'} />
+                <SidebarRow label="지역" value={detail.org.region || '미정'} />
+                <SidebarRow label="신청 마감" value={deadlineText} last />
               </dl>
 
-              <button style={{
+              <button
+                onClick={() => {
+                  if (applyUrl) window.open(applyUrl, '_blank', 'noopener,noreferrer');
+                }}
+                style={{
                 width: '100%', height: 48, marginTop: 16,
                 background: 'var(--brand-500)', color: '#fff', border: 'none',
                 borderRadius: 8, fontWeight: 700, fontSize: 14,
                 display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+                opacity: applyUrl ? 1 : 0.5,
+                cursor: applyUrl ? 'pointer' : 'not-allowed',
               }}>
                 신청페이지로 바로가기 <Icon.ChevronR width={14} height={14} />
               </button>
@@ -1710,8 +1741,8 @@ function ProgramDetailPage({ program, onBack, onLogin, user, onLogout, onMyPage 
               }}>
                 <span style={{ flexShrink: 0 }}>💡</span>
                 <span>
-                  신청 도서는 본인이 정한 색채에서 다루는 운영기관<br />
-                  접속.ID
+                  신청 전 운영기관의 최신 모집 안내와 자격 조건을<br />
+                  한 번 더 확인해주세요.
                 </span>
               </div>
             </div>

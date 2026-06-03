@@ -109,6 +109,7 @@ function mapProgramDetailRow(row, index) {
     weeks: data.weeks || '',
     deadline: data.deadline ? `마감 ${formatDate(data.deadline)}` : '상시 모집',
     statusVariant: getStatusVariant(status, dDay, data.status_variant),
+    intro: data.intro || '',
     description: data.description || '',
     qualification: data.qualification || '',
     region: data.region || '',
