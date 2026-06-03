@@ -38,8 +38,8 @@ function HeaderLogoP3() {
       display: 'flex', alignItems: 'baseline', gap: 0,
       fontWeight: 800, fontSize: 22, letterSpacing: '-0.03em', color: 'var(--brand-700)',
     }}>
-      <span>나와,&nbsp;</span>
-      <span style={{ color: 'var(--brand-500)' }}>나왕</span>
+      <span>나와</span>
+      <span style={{ color: 'var(--brand-500)' }}>너와</span>
     </div>
   );
 }

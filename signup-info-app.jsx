@@ -59,8 +59,8 @@ function HeaderLogo() {
       display: 'flex', alignItems: 'baseline', gap: 0,
       fontWeight: 800, fontSize: 22, letterSpacing: '-0.03em', color: 'var(--brand-700)',
     }}>
-      <span>나와,&nbsp;</span>
-      <span style={{ color: 'var(--brand-500)' }}>나왕</span>
+      <span>나와</span>
+      <span style={{ color: 'var(--brand-500)' }}>너와</span>
     </div>
   );
 }
@@ -208,7 +208,7 @@ export default function SignupInfoPage() {
             margin: '14px 0 8px', fontSize: 26, fontWeight: 800,
             color: 'var(--ink-900)', letterSpacing: '-0.025em', lineHeight: 1.35,
           }}>
-            <span style={{ color: 'var(--brand-500)' }}>나와, 나왕</span>입니다.<br />
+            <span style={{ color: 'var(--brand-500)' }}>나와너와</span>입니다.<br />
             당신을 위한 정보를 수집합니다.
           </h1>
           <p style={{

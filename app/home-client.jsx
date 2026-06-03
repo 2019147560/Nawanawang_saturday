@@ -148,8 +148,8 @@ function LoginPage({ onBack, onSignup, onLoginDone, onGoogleLogin, onKakaoLogin 
             fontWeight: 800, fontSize: 28, letterSpacing: '-0.03em', color: 'var(--brand-700)',
             marginBottom: 22,
           }}>
-            <span>나와,&nbsp;</span>
-            <span style={{ color: 'var(--brand-500)' }}>나왕</span>
+            <span>나와</span>
+            <span style={{ color: 'var(--brand-500)' }}>너와</span>
           </div>
           <h1 style={{
             margin: 0, fontSize: 22, fontWeight: 700,
@@ -229,8 +229,8 @@ function MainNav({ onHome, onNavAll, active }) {
             display: 'flex', alignItems: 'baseline', gap: 0,
             fontWeight: 800, fontSize: 22, letterSpacing: '-0.03em', color: 'var(--brand-700)',
           }}>
-            <span>나와,&nbsp;</span>
-            <span style={{ color: 'var(--brand-500)' }}>나왕</span>
+            <span>나와</span>
+            <span style={{ color: 'var(--brand-500)' }}>너와</span>
           </div>
           <div style={{
             paddingLeft: 12, marginLeft: 4, borderLeft: '1px solid var(--line)',
@@ -1147,7 +1147,7 @@ function Footer() {
       }}>
         <div style={{ fontSize: 12, color: 'var(--ink-500)', lineHeight: 1.7, maxWidth: 540 }}>
           <div style={{ fontWeight: 800, fontSize: 15, color: 'var(--ink-900)', marginBottom: 10 }}>
-            나와, 나왕
+            나와너와
           </div>
           <div>고립·은둔청년 통합 정보 플랫폼</div>
           <div>
@@ -1269,7 +1269,7 @@ function InfoRequestModal({ onClose }) {
                   margin: '10px 0 0', fontSize: 13, lineHeight: 1.6,
                   color: 'var(--ink-600)',
                 }}>
-                  고립·은둔청년 관련 지원정보를 알고 있다면 나와, 나왕 운영팀에 전달해주세요.<br />
+                  고립·은둔청년 관련 지원정보를 알고 있다면 나와너와 운영팀에 전달해주세요.<br />
                   전달된 정보는 검토 후 플랫폼에 반영됩니다.
                 </p>
               </div>
@@ -1923,7 +1923,7 @@ function SignupPage({ onBack, onDone }) {
         {/* Header */}
         {step === 1 && (
           <SignupHeader
-            title={<>나와, <span style={{ color: 'var(--brand-500)' }}>나왕</span>입니다.<br />당신을 위한 정보를 수집합니다.</>}
+            title={<>나와<span style={{ color: 'var(--brand-500)' }}>너와</span>입니다.<br />당신을 위한 정보를 수집합니다.</>}
             desc={'맞춤 지원사업을 안내해 드리기 위해\n아래 정보가 필요해요. 입력하신 내용은 안전하게 보호됩니다.'}
           />
         )}
@@ -1954,7 +1954,7 @@ function SignupPage({ onBack, onDone }) {
                 label="닉네임" required
                 helper="서비스 안에서 사용할 이름이에요. 실명이 아니어도 괜찮습니다."
               >
-                <SignupInput value={form.nickname} onChange={(v) => upd('nickname', v)} placeholder="예) 나왕이" />
+                <SignupInput value={form.nickname} onChange={(v) => upd('nickname', v)} placeholder="예) 너와이" />
               </Field>
 
               {/* Email + verification */}
@@ -3020,7 +3020,7 @@ function TrustStats() {
         <h2 style={{
           margin: 0, fontSize: 22, fontWeight: 800, color: 'var(--ink-900)',
           letterSpacing: '-0.025em',
-        }}>숫자로 보는 나와, 나왕</h2>
+        }}>숫자로 보는 나와너와</h2>
         <p style={{
           margin: '6px 0 0', fontSize: 13, color: 'var(--ink-500)',
           letterSpacing: '-0.01em',
@@ -3089,7 +3089,7 @@ const REVIEWS = [
   { id: 'r-5', rating: 5,
     quote: '주변에 소개해주고 싶은 프로그램이 많아서, 관심있는 친구들에게 링크를 보내고 있어요.',
     author: '삼곡이 서포터', persona: '지인',
-    programTitle: '프로그램 추천 커뮤니티', org: '나와·나왕', bg: 'var(--card-purple)' },
+    programTitle: '프로그램 추천 커뮤니티', org: '나와너와', bg: 'var(--card-purple)' },
 ];
 
 function ReviewCard({ r, onClick }) {
@@ -3455,4 +3455,3 @@ function ListView({ programs, onOpen }) {
 
 export { LoginPage };
 export default App;
-
