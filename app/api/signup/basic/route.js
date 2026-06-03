@@ -188,13 +188,13 @@ export async function POST(request) {
   const body = await request.json();
 
   const nickname = String(body.nickname || '').trim();
-  const email = String(session?.user?.email || '').trim().toLowerCase();
+  const email = String(session?.user?.email || body.email || '').trim().toLowerCase();
   const phone = normalizePhone(body.phone);
   const phoneValue = phone || null;
   const provider = session?.user?.provider || null;
   const providerAccountId = session?.user?.providerAccountId || session?.user?.id || null;
 
-  if (!email) {
+  if (!session?.user || !email) {
     return NextResponse.json({ message: '로그인이 필요합니다.' }, { status: 401 });
   }
 
