@@ -3001,6 +3001,130 @@ function OneShotCard({ p, onClick }) {
   );
 }
 
+const FEATURED_VIDEOS = [
+  {
+    id: 'community-picks',
+    title: '이번주 20대 청년이 갈만한 10가지 모임',
+    meta: '모임 추천 · 커뮤니티',
+    thumbnail: '/video-thumbnails/community-picks.png',
+  },
+  {
+    id: 'policy-guide',
+    title: '이번엔 은둔·고립 청년 지원 정책 알아보기',
+    meta: '정책 안내 · 맞춤 지원',
+    thumbnail: '/video-thumbnails/policy-guide.png',
+  },
+  {
+    id: 'outside-first-step',
+    title: '밖으로 나가는 첫 걸음, 작게 시작하는 방법',
+    meta: '회복 루틴 · 외출 연습',
+    thumbnail: '/video-thumbnails/outside-first-step.png',
+  },
+];
+
+function FeaturedVideos() {
+  return (
+    <section style={{ marginTop: 24 }}>
+      <div style={{
+        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+        gap: 16, marginBottom: 14,
+      }}>
+        <div>
+          <div style={{
+            fontSize: 12, fontWeight: 700, color: 'var(--brand-500)',
+            marginBottom: 6,
+          }}>추천 영상</div>
+          <h2 style={{
+            margin: 0, fontSize: 22, fontWeight: 800,
+            color: 'var(--ink-900)', letterSpacing: '-0.025em',
+          }}>짧게 보고 시작해요</h2>
+        </div>
+      </div>
+
+      <div className="featured-video-grid" style={{
+        display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))',
+        gap: 16,
+      }}>
+        {FEATURED_VIDEOS.map((video) => (
+          <article
+            key={video.id}
+            style={{
+              minWidth: 0,
+              cursor: 'pointer',
+            }}
+          >
+            <div style={{
+              position: 'relative',
+              aspectRatio: '16 / 9',
+              overflow: 'hidden',
+              borderRadius: 10,
+              background: 'var(--bg-soft)',
+              boxShadow: '0 1px 2px rgba(15,23,42,0.06)',
+            }}>
+              <img
+                src={video.thumbnail}
+                alt=""
+                style={{
+                  width: '100%', height: '100%',
+                  objectFit: 'cover', display: 'block',
+                  transition: 'transform .2s ease',
+                }}
+                onMouseEnter={(e) => { e.currentTarget.style.transform = 'scale(1.025)'; }}
+                onMouseLeave={(e) => { e.currentTarget.style.transform = 'scale(1)'; }}
+              />
+              <div style={{
+                position: 'absolute',
+                left: 10,
+                bottom: 10,
+                width: 34,
+                height: 34,
+                borderRadius: '50%',
+                background: 'rgba(0,0,0,0.76)',
+                display: 'inline-flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                color: '#fff',
+              }}>
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                  <path d="M8 5v14l11-7z" />
+                </svg>
+              </div>
+            </div>
+            <h3 style={{
+              margin: '10px 0 4px',
+              fontSize: 15,
+              fontWeight: 800,
+              lineHeight: 1.35,
+              color: 'var(--ink-900)',
+              letterSpacing: '-0.01em',
+              display: '-webkit-box',
+              WebkitLineClamp: 2,
+              WebkitBoxOrient: 'vertical',
+              overflow: 'hidden',
+            }}>{video.title}</h3>
+            <div style={{
+              fontSize: 12,
+              fontWeight: 600,
+              color: 'var(--ink-500)',
+              whiteSpace: 'nowrap',
+              overflow: 'hidden',
+              textOverflow: 'ellipsis',
+            }}>{video.meta}</div>
+          </article>
+        ))}
+      </div>
+
+      <style>{`
+        @media (max-width: 820px) {
+          .featured-video-grid {
+            grid-template-columns: 1fr !important;
+          }
+        }
+      `}</style>
+    </section>
+  );
+}
+
 /* ----- Reviews ----- */
 const TRUST_STATS = [
   { value: '2,480', unit: '명', label: '누적 참여 청년', sub: '프로그램에 함께한 인원', accent: 'var(--card-blue)' },
@@ -3295,6 +3419,8 @@ function ListPage({ mode = 'home', onOpen, onLogin, onHome, onNavAll, user, onLo
         {/* Curation rows — home only */}
         {mode === 'home' && (
           <React.Fragment>
+            <FeaturedVideos />
+
             <CurationRow
               eyebrow="실시간 인기"
               title="지금 가장 많이 보고 있는 사업"
