@@ -12,8 +12,32 @@ const CARD_BACKGROUNDS = [
   'var(--card-mustard)',
   'var(--card-lemon)',
   'var(--card-pink)',
-  'var(--card-mint)',
+  'var(--card-purple)',
 ];
+
+const TEAL_BACKGROUNDS = new Set([
+  'var(--card-mint)',
+  'teal',
+  'mint',
+  '#b9d8c5',
+  '#14b8a6',
+  '#0d9488',
+  '#2dd4bf',
+  '#99f6e4',
+  '#ccfbf1',
+]);
+
+function normalizeCardBackground(value, index) {
+  const fallback = CARD_BACKGROUNDS[index % CARD_BACKGROUNDS.length];
+  if (!value) return fallback;
+
+  const normalized = String(value).trim().toLowerCase();
+  if (TEAL_BACKGROUNDS.has(normalized)) {
+    return index % 2 === 0 ? 'var(--card-purple)' : 'var(--card-yellow)';
+  }
+
+  return value;
+}
 
 function getEnvDiagnostics() {
   const { url, key } = getSupabaseConfig();
@@ -84,6 +108,7 @@ function normalizeDetailRow(row) {
     id: program.id || row.program_id || row.id,
     tag: row.purpose || program.tag,
     title: program.title,
+    nickname: program.nickname,
     org: row.org_name || program.org,
     chips,
   };
@@ -102,9 +127,10 @@ function mapProgramDetailRow(row, index) {
     tag: data.purpose || data.tag || '지원사업',
     dDay,
     title: data.title || data.intro || '제목 없음',
+    nickname: data.nickname || '',
     org: data.org || '',
     status,
-    bg: data.bg || CARD_BACKGROUNDS[index % CARD_BACKGROUNDS.length],
+    bg: normalizeCardBackground(data.bg, index),
     chips,
     weeks: data.weeks || '',
     deadline: data.deadline ? `마감 ${formatDate(data.deadline)}` : '상시 모집',
@@ -124,7 +150,7 @@ function mapProgramDetailRow(row, index) {
 
 async function fetchProgramDetailsFromSupabase() {
   const rows = await supabaseRequest(
-    'program_details?select=program_id,intro,description,qualification,org_name,region,phone,kakao,homepage,email,purpose,view_count,programs(id,tag,d_day,title,org,status,bg,weeks,deadline,status_variant,program_chips(chip))&order=view_count.desc.nullslast,program_id.asc',
+    'program_details?select=program_id,intro,description,qualification,org_name,region,phone,kakao,homepage,email,purpose,view_count,programs(id,tag,d_day,title,nickname,org,status,bg,weeks,deadline,status_variant,program_chips(chip))&order=view_count.desc.nullslast,program_id.asc',
   );
   if (!rows) return null;
   return rows.map(mapProgramDetailRow);
@@ -152,6 +178,7 @@ async function fetchProgramDetailsFromPostgres() {
         p.tag,
         p.d_day,
         p.title,
+        p.nickname,
         p.org,
         p.status,
         p.bg,

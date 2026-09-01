@@ -842,8 +842,13 @@ const PROGRAMS = [
   },
 ];
 
+function getProgramDisplayTitle(program) {
+  return program?.nickname || program?.title || '';
+}
+
 function ProgramCard({ p, onClick }) {
   const [hover, setHover] = useState(false);
+  const displayTitle = getProgramDisplayTitle(p);
 
   // status pill
   let statusBg = '#fff', statusFg = 'var(--ink-900)', statusBorder = '1px solid rgba(0,0,0,0.08)';
@@ -914,7 +919,7 @@ function ProgramCard({ p, onClick }) {
             margin: 0, fontSize: 19, fontWeight: 800, lineHeight: 1.35,
             color: 'var(--ink-900)', letterSpacing: '-0.02em',
             whiteSpace: 'pre-line',
-          }}>{p.title}</h3>
+          }}>{displayTitle}</h3>
         </div>
 
         {/* Bottom row */}
@@ -957,7 +962,7 @@ function ProgramCard({ p, onClick }) {
           fontSize: 14, fontWeight: 700, color: 'var(--ink-900)',
           letterSpacing: '-0.01em', lineHeight: 1.4,
           whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
-        }}>{p.title.replace('\n', ', ')}</div>
+        }}>{displayTitle.replace('\n', ', ')}</div>
 
         <div style={{ fontSize: 12, color: 'var(--ink-500)' }}>{p.org}</div>
 
@@ -2850,6 +2855,7 @@ const POPULAR_PICKS = [
 function PopularCard({ entry, program, onClick }) {
   const p = program || PROGRAMS.find((x) => x.id === entry.programId);
   if (!p) return null;
+  const displayTitle = getProgramDisplayTitle(p);
   const up = entry.delta.startsWith('▲');
   const down = entry.delta.startsWith('▼');
   const newish = entry.delta === 'NEW';
@@ -2899,7 +2905,7 @@ function PopularCard({ entry, program, onClick }) {
           letterSpacing: '-0.01em', lineHeight: 1.4,
           display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical',
           overflow: 'hidden',
-        }}>{p.title.replace('\n', ' ')}</div>
+        }}>{displayTitle.replace('\n', ' ')}</div>
         <div style={{ fontSize: 12, color: 'var(--ink-500)' }}>{p.org}</div>
         <div style={{
           display: 'flex', justifyContent: 'space-between', alignItems: 'center',
@@ -3345,7 +3351,7 @@ function ListPage({ mode = 'home', onOpen, onLogin, onHome, onNavAll, user, onLo
 
   const filtered = useMemo(() => {
     return programs.filter((p) => {
-      if (appliedQuery && !p.title.includes(appliedQuery) && !p.org.includes(appliedQuery)) return false;
+      if (appliedQuery && !getProgramDisplayTitle(p).includes(appliedQuery) && !p.title.includes(appliedQuery) && !p.org.includes(appliedQuery)) return false;
 
       const anySelected = (arr) => Array.isArray(arr) && arr.length > 0;
       const chips = Array.isArray(p.chips) ? p.chips : [];
@@ -3544,7 +3550,9 @@ const viewBtn = (active) => ({
 function ListView({ programs, onOpen }) {
   return (
     <div style={{ marginTop: 18, display: 'flex', flexDirection: 'column', gap: 8 }}>
-      {programs.map((p) => (
+      {programs.map((p) => {
+        const displayTitle = getProgramDisplayTitle(p);
+        return (
         <div key={p.id} onClick={() => onOpen && onOpen(p)} style={{
           display: 'flex', gap: 18, alignItems: 'center',
           padding: 14, border: '1px solid var(--line)', borderRadius: 12, background: '#fff',
@@ -3562,7 +3570,7 @@ function ListView({ programs, onOpen }) {
                 }}>{c}</span>
               ))}
             </div>
-            <div style={{ fontWeight: 700, fontSize: 15, marginBottom: 4 }}>{p.title.replace('\n', ' ')}</div>
+            <div style={{ fontWeight: 700, fontSize: 15, marginBottom: 4 }}>{displayTitle.replace('\n', ' ')}</div>
             <div style={{ fontSize: 12, color: 'var(--ink-500)' }}>{p.org} · {p.weeks}</div>
           </div>
           <div style={{ textAlign: 'right' }}>
@@ -3574,7 +3582,8 @@ function ListView({ programs, onOpen }) {
             <div style={{ fontSize: 12, color: 'var(--ink-500)' }}>{p.deadline}</div>
           </div>
         </div>
-      ))}
+        );
+      })}
     </div>
   );
 }
