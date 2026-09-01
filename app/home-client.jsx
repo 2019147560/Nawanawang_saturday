@@ -846,6 +846,17 @@ function getProgramDisplayTitle(program) {
   return program?.nickname || program?.title || '';
 }
 
+function getProgramDeadlineYear(program) {
+  const raw = program?.deadlineDate || program?.deadline || '';
+  const match = String(raw).match(/(19|20)\d{2}/);
+  return match ? Number(match[0]) : null;
+}
+
+function isPastProgramInfo(program) {
+  const deadlineYear = getProgramDeadlineYear(program);
+  return deadlineYear !== null && deadlineYear <= 2025;
+}
+
 function ProgramCard({ p, onClick }) {
   const [hover, setHover] = useState(false);
   const displayTitle = getProgramDisplayTitle(p);
@@ -3295,6 +3306,7 @@ function ListPage({ mode = 'home', onOpen, onLogin, onHome, onNavAll, user, onLo
   });
   const [query, setQuery] = useState('');
   const [appliedQuery, setAppliedQuery] = useState('');
+  const [programTimeScope, setProgramTimeScope] = useState('current');
   const [view, setView] = useState('grid');
   const [page, setPage] = useState(1);
   const [sort, setSort] = useState('추천순');
@@ -3349,9 +3361,17 @@ function ListPage({ mode = 'home', onOpen, onLogin, onHome, onNavAll, user, onLo
     return () => { alive = false; };
   }, []);
 
+  const visiblePrograms = useMemo(() => {
+    if (programTimeScope === 'past') return programs;
+    return programs.filter((p) => !isPastProgramInfo(p));
+  }, [programs, programTimeScope]);
+
   const filtered = useMemo(() => {
-    return programs.filter((p) => {
-      if (appliedQuery && !getProgramDisplayTitle(p).includes(appliedQuery) && !p.title.includes(appliedQuery) && !p.org.includes(appliedQuery)) return false;
+    return visiblePrograms.filter((p) => {
+      const displayTitle = getProgramDisplayTitle(p);
+      const title = p.title || '';
+      const org = p.org || '';
+      if (appliedQuery && !displayTitle.includes(appliedQuery) && !title.includes(appliedQuery) && !org.includes(appliedQuery)) return false;
 
       const anySelected = (arr) => Array.isArray(arr) && arr.length > 0;
       const chips = Array.isArray(p.chips) ? p.chips : [];
@@ -3366,21 +3386,36 @@ function ListPage({ mode = 'home', onOpen, onLogin, onHome, onNavAll, user, onLo
       }
       return true;
     });
-  }, [programs, filters, appliedQuery]);
+  }, [visiblePrograms, filters, appliedQuery]);
 
   const firstPageSections = useMemo(() => {
-    const popularCount = Math.min(POPULAR_PICKS.length, programs.length);
+    const popularCount = Math.min(POPULAR_PICKS.length, visiblePrograms.length);
     const lightStart = popularCount;
-    const lightEnd = Math.min(lightStart + 6, programs.length);
+    const lightEnd = Math.min(lightStart + 6, visiblePrograms.length);
 
     return {
-      popular: programs.slice(0, popularCount).map((program, index) => ({
+      popular: visiblePrograms.slice(0, popularCount).map((program, index) => ({
         program,
         entry: { ...POPULAR_PICKS[index], rank: index + 1 },
       })),
-      lightStart: programs.slice(lightStart, lightEnd),
+      lightStart: visiblePrograms.slice(lightStart, lightEnd),
     };
-  }, [programs]);
+  }, [visiblePrograms]);
+
+  const renderTimeScopeSelect = () => (
+    <select
+      value={programTimeScope}
+      onChange={(e) => setProgramTimeScope(e.target.value)}
+      style={{
+        height: 34, border: '1px solid var(--line)', borderRadius: 8,
+        padding: '0 10px 0 12px', fontSize: 12, color: 'var(--ink-700)',
+        background: '#fff', fontFamily: 'inherit', minWidth: 140,
+      }}
+    >
+      <option value="current">현재 정보만</option>
+      <option value="past">과거정보 보기</option>
+    </select>
+  );
 
   return (
     <div data-screen-label={mode === 'all' ? '01b 지원사업 전체' : '01 홈'}>
@@ -3404,6 +3439,11 @@ function ListPage({ mode = 'home', onOpen, onLogin, onHome, onNavAll, user, onLo
             values={filters} onChange={handleFilter} onReset={reset}
             query={query} setQuery={setQuery} onSearch={search}
           />
+          {mode === 'home' && (
+            <div style={{ marginTop: 14, display: 'flex', justifyContent: 'center' }}>
+              {renderTimeScopeSelect()}
+            </div>
+          )}
         </div>
       </section>
 
@@ -3473,6 +3513,7 @@ function ListPage({ mode = 'home', onOpen, onLogin, onHome, onNavAll, user, onLo
                 {loadingPrograms ? '불러오는 중' : '전체'} <strong style={{ color: 'var(--ink-900)', fontWeight: 700 }}>{filtered.length}</strong>건
               </div>
               <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                {renderTimeScopeSelect()}
                 <select
                   value={sort} onChange={(e) => setSort(e.target.value)}
                   style={{

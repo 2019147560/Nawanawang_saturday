@@ -133,6 +133,7 @@ function mapProgramDetailRow(row, index) {
     bg: normalizeCardBackground(data.bg, index),
     chips,
     weeks: data.weeks || '',
+    deadlineDate: data.deadline || null,
     deadline: data.deadline ? `마감 ${formatDate(data.deadline)}` : '상시 모집',
     statusVariant: getStatusVariant(status, dDay, data.status_variant),
     intro: data.intro || '',
