@@ -852,9 +852,42 @@ function getProgramDeadlineYear(program) {
   return match ? Number(match[0]) : null;
 }
 
+function getProgramDeadlineTime(program) {
+  const raw = program?.deadlineDate || program?.deadline || '';
+  if (!raw) return null;
+
+  const text = String(raw).trim();
+  const dateMatch = text.match(/((?:19|20)\d{2})[.-](\d{1,2})[.-](\d{1,2})/);
+  if (dateMatch) {
+    const [, yyyy, mm, dd] = dateMatch;
+    const date = new Date(Number(yyyy), Number(mm) - 1, Number(dd), 23, 59, 59);
+    return Number.isNaN(date.getTime()) ? null : date.getTime();
+  }
+
+  const date = new Date(text);
+  return Number.isNaN(date.getTime()) ? null : date.getTime();
+}
+
 function isPastProgramInfo(program) {
   const deadlineYear = getProgramDeadlineYear(program);
   return deadlineYear !== null && deadlineYear <= 2025;
+}
+
+function isOverTwoMonthsPastDeadline(program) {
+  const deadlineTime = getProgramDeadlineTime(program);
+  if (!deadlineTime) return false;
+
+  const twoMonthsAgo = new Date();
+  twoMonthsAgo.setMonth(twoMonthsAgo.getMonth() - 2);
+  return deadlineTime < twoMonthsAgo.getTime();
+}
+
+function prioritizeCurrentPrograms(programs) {
+  return [...programs].sort((a, b) => {
+    const aPast = isOverTwoMonthsPastDeadline(a);
+    const bPast = isOverTwoMonthsPastDeadline(b);
+    return Number(aPast) - Number(bPast);
+  });
 }
 
 function ProgramCard({ p, onClick }) {
@@ -3366,8 +3399,12 @@ function ListPage({ mode = 'home', onOpen, onLogin, onHome, onNavAll, user, onLo
     return programs.filter((p) => !isPastProgramInfo(p));
   }, [programs, programTimeScope]);
 
+  const prioritizedPrograms = useMemo(() => (
+    prioritizeCurrentPrograms(visiblePrograms)
+  ), [visiblePrograms]);
+
   const filtered = useMemo(() => {
-    return visiblePrograms.filter((p) => {
+    return prioritizedPrograms.filter((p) => {
       const displayTitle = getProgramDisplayTitle(p);
       const title = p.title || '';
       const org = p.org || '';
@@ -3386,21 +3423,21 @@ function ListPage({ mode = 'home', onOpen, onLogin, onHome, onNavAll, user, onLo
       }
       return true;
     });
-  }, [visiblePrograms, filters, appliedQuery]);
+  }, [prioritizedPrograms, filters, appliedQuery]);
 
   const firstPageSections = useMemo(() => {
-    const popularCount = Math.min(POPULAR_PICKS.length, visiblePrograms.length);
+    const popularCount = Math.min(POPULAR_PICKS.length, prioritizedPrograms.length);
     const lightStart = popularCount;
-    const lightEnd = Math.min(lightStart + 6, visiblePrograms.length);
+    const lightEnd = Math.min(lightStart + 6, prioritizedPrograms.length);
 
     return {
-      popular: visiblePrograms.slice(0, popularCount).map((program, index) => ({
+      popular: prioritizedPrograms.slice(0, popularCount).map((program, index) => ({
         program,
         entry: { ...POPULAR_PICKS[index], rank: index + 1 },
       })),
-      lightStart: visiblePrograms.slice(lightStart, lightEnd),
+      lightStart: prioritizedPrograms.slice(lightStart, lightEnd),
     };
-  }, [visiblePrograms]);
+  }, [prioritizedPrograms]);
 
   const renderTimeScopeSelect = () => (
     <select
