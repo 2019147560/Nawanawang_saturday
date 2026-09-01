@@ -9,34 +9,28 @@ const CARD_BACKGROUNDS = [
   'var(--card-yellow)',
   'var(--card-orange)',
   'var(--card-purple)',
-  'var(--card-mustard)',
-  'var(--card-lemon)',
   'var(--card-pink)',
-  'var(--card-purple)',
 ];
 
-const TEAL_BACKGROUNDS = new Set([
-  'var(--card-mint)',
-  'teal',
-  'mint',
-  '#b9d8c5',
-  '#14b8a6',
-  '#0d9488',
-  '#2dd4bf',
-  '#99f6e4',
-  '#ccfbf1',
-]);
+const ALLOWED_CARD_BACKGROUNDS = new Set(CARD_BACKGROUNDS);
+
+function getStableColorIndex(seed) {
+  const text = String(seed || '');
+  let hash = 0;
+  for (let i = 0; i < text.length; i += 1) {
+    hash = (hash * 31 + text.charCodeAt(i)) >>> 0;
+  }
+  return hash % CARD_BACKGROUNDS.length;
+}
 
 function normalizeCardBackground(value, index) {
-  const fallback = CARD_BACKGROUNDS[index % CARD_BACKGROUNDS.length];
+  const fallback = CARD_BACKGROUNDS[getStableColorIndex(index)];
   if (!value) return fallback;
 
-  const normalized = String(value).trim().toLowerCase();
-  if (TEAL_BACKGROUNDS.has(normalized)) {
-    return index % 2 === 0 ? 'var(--card-purple)' : 'var(--card-yellow)';
-  }
+  const normalized = String(value).trim();
+  if (ALLOWED_CARD_BACKGROUNDS.has(normalized)) return normalized;
 
-  return value;
+  return fallback;
 }
 
 function getEnvDiagnostics() {
@@ -130,7 +124,7 @@ function mapProgramDetailRow(row, index) {
     nickname: data.nickname || '',
     org: data.org || '',
     status,
-    bg: normalizeCardBackground(data.bg, index),
+    bg: normalizeCardBackground(data.bg, data.id || data.title || index),
     chips,
     weeks: data.weeks || '',
     deadlineDate: data.deadline || null,

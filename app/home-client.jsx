@@ -810,7 +810,7 @@ const PROGRAMS = [
     id: 5, tag: '사회 적응', dDay: 'D-10',
     title: '취업 전, 나를\n알아가는 워크숍',
     org: '인천 청년센터', status: '모집 중',
-    bg: 'var(--card-mustard)',
+    bg: 'var(--card-blue)',
     chips: ['전체 신청 가능', '인천', '오프라인'],
     weeks: '8주 · 주 2회', deadline: '마감 2026.05.15',
   },
@@ -818,7 +818,7 @@ const PROGRAMS = [
     id: 6, tag: '온라인 모임', dDay: 'D-25',
     title: '늦은 밤 라디오, 청년 사연함',
     org: '광주 청년재단', status: '모집 중',
-    bg: 'var(--card-lemon)',
+    bg: 'var(--card-yellow)',
     chips: ['전체 신청 가능', '광주', '온라인'],
     weeks: '4주 · 주 1회', deadline: '마감 2026.05.30',
   },
@@ -835,7 +835,7 @@ const PROGRAMS = [
     id: 8, tag: '온라인 모임', dDay: '곧오픈',
     title: '게임으로 만나는 또래 살롱',
     org: '강원 청년허브', status: '모집 예정',
-    bg: 'var(--card-mint)',
+    bg: 'var(--card-purple)',
     chips: ['모집 예정', '강원', '온라인'],
     weeks: '8주 · 주 1회', deadline: '마감 2026.06.10',
     statusVariant: 'soon',
@@ -844,6 +844,31 @@ const PROGRAMS = [
 
 function getProgramDisplayTitle(program) {
   return program?.nickname || program?.title || '';
+}
+
+const ALLOWED_CARD_BACKGROUNDS = [
+  'var(--card-blue)',
+  'var(--card-yellow)',
+  'var(--card-pink)',
+  'var(--card-orange)',
+  'var(--card-purple)',
+];
+
+const ALLOWED_CARD_BACKGROUND_SET = new Set(ALLOWED_CARD_BACKGROUNDS);
+
+function getStableCardColor(seed) {
+  const text = String(seed || '');
+  let hash = 0;
+  for (let i = 0; i < text.length; i += 1) {
+    hash = (hash * 31 + text.charCodeAt(i)) >>> 0;
+  }
+  return ALLOWED_CARD_BACKGROUNDS[hash % ALLOWED_CARD_BACKGROUNDS.length];
+}
+
+function normalizeCardBackground(value, seed) {
+  const bg = String(value || '').trim();
+  if (ALLOWED_CARD_BACKGROUND_SET.has(bg)) return bg;
+  return getStableCardColor(seed);
 }
 
 function getProgramDeadlineYear(program) {
@@ -893,6 +918,7 @@ function prioritizeCurrentPrograms(programs) {
 function ProgramCard({ p, onClick }) {
   const [hover, setHover] = useState(false);
   const displayTitle = getProgramDisplayTitle(p);
+  const cardBg = normalizeCardBackground(p.bg, p.id || displayTitle);
 
   // status pill
   let statusBg = '#fff', statusFg = 'var(--ink-900)', statusBorder = '1px solid rgba(0,0,0,0.08)';
@@ -929,7 +955,7 @@ function ProgramCard({ p, onClick }) {
     >
       {/* Visual top */}
       <div style={{
-        position: 'relative', background: p.bg, height: 200, padding: 18,
+        position: 'relative', background: cardBg, height: 200, padding: 18,
         display: 'flex', flexDirection: 'column', justifyContent: 'space-between',
         overflow: 'hidden',
       }}>
@@ -2616,7 +2642,7 @@ function MyPage({ user, onLogin, onLogout, onMyPage, onHome, onNavAll, onOpen })
           {[
             { value: bookmarked.length, label: '북마크한 프로그램', accent: 'var(--card-yellow)' },
             { value: MY_APPLICATIONS.length, label: '신청한 프로그램', accent: 'var(--card-blue)' },
-            { value: 1, label: '참여 완료', accent: 'var(--card-mint)' },
+            { value: 1, label: '참여 완료', accent: 'var(--card-purple)' },
           ].map((s) => (
             <div key={s.label} style={{
               position: 'relative', overflow: 'hidden',
@@ -2900,6 +2926,7 @@ function PopularCard({ entry, program, onClick }) {
   const p = program || PROGRAMS.find((x) => x.id === entry.programId);
   if (!p) return null;
   const displayTitle = getProgramDisplayTitle(p);
+  const cardBg = normalizeCardBackground(p.bg, p.id || displayTitle);
   const up = entry.delta.startsWith('▲');
   const down = entry.delta.startsWith('▼');
   const newish = entry.delta === 'NEW';
@@ -2918,7 +2945,7 @@ function PopularCard({ entry, program, onClick }) {
       onMouseLeave={(e) => { e.currentTarget.style.transform = ''; e.currentTarget.style.boxShadow = ''; }}
     >
       <div style={{
-        position: 'relative', background: p.bg, height: 160,
+        position: 'relative', background: cardBg, height: 160,
         padding: 14, overflow: 'hidden',
         display: 'flex', flexDirection: 'column', justifyContent: 'space-between',
       }}>
@@ -2972,7 +2999,7 @@ const ONE_SHOT_PICKS = [
     title: '나를 위한 커피 드리핑 원데이', org: '촌촌수투', bg: 'var(--card-orange)',
     when: '6/01 토 11:00', length: '2시간', mode: '오프라인' },
   { id: 'os-3', tag: '온라인 모임', dDay: 'D-3',
-    title: '닫터서의 조용한 글쓰기 섬', org: '나나센터 수원', bg: 'var(--card-mint)',
+    title: '닫터서의 조용한 글쓰기 섬', org: '나나센터 수원', bg: 'var(--card-purple)',
     when: '5/20 화 21:00', length: '90분', mode: '온라인' },
   { id: 'os-4', tag: '산책 모임', dDay: 'D-9',
     title: '서천에서 함께 걷는 아침', org: '서울 청년허브', bg: 'var(--card-blue)',
@@ -2986,6 +3013,7 @@ const ONE_SHOT_PICKS = [
 ];
 
 function OneShotCard({ p, onClick }) {
+  const cardBg = normalizeCardBackground(p.bg, p.id || p.title);
   return (
     <article
       onClick={onClick}
@@ -3000,7 +3028,7 @@ function OneShotCard({ p, onClick }) {
       onMouseLeave={(e) => { e.currentTarget.style.transform = ''; e.currentTarget.style.boxShadow = ''; }}
     >
       <div style={{
-        position: 'relative', background: p.bg, height: 132,
+        position: 'relative', background: cardBg, height: 132,
         padding: 14, display: 'flex', flexDirection: 'column', justifyContent: 'space-between',
         overflow: 'hidden',
       }}>
@@ -3180,7 +3208,7 @@ const TRUST_STATS = [
   { value: '2,480', unit: '명', label: '누적 참여 청년', sub: '프로그램에 함께한 인원', accent: 'var(--card-blue)' },
   { value: '32', unit: '곳', label: '운영·협력 기관', sub: '전국 청년센터·재단·상담기관', accent: 'var(--card-yellow)' },
   { value: '156', unit: '개', label: '진행 프로그램', sub: '온·오프라인 누적 운영', accent: 'var(--card-pink)' },
-  { value: '14', unit: '개', label: '운영 지역', sub: '전국 시·도 단위', accent: 'var(--card-mint)' },
+  { value: '14', unit: '개', label: '운영 지역', sub: '전국 시·도 단위', accent: 'var(--card-purple)' },
 ];
 
 function TrustStats() {
@@ -3255,7 +3283,7 @@ const REVIEWS = [
   { id: 'r-3', rating: 4,
     quote: '자식을 도와주고 싶었는데 어떻게 대해야 할지 몰랐어요. 가족 상담에서 힌트를 많이 얻었습니다.',
     author: '어머니 김··', persona: '가족',
-    programTitle: '가족을 위한 동행 상담', org: '경기 청년재단', bg: 'var(--card-mint)' },
+    programTitle: '가족을 위한 동행 상담', org: '경기 청년재단', bg: 'var(--card-orange)' },
   { id: 'r-4', rating: 5,
     quote: '8주간 매주 같은 시간에 외출하는 게 이렇게 큰 변화일 줄 몰랐어요.',
     author: '바람 한줄 14', persona: '당사자',
@@ -3267,6 +3295,7 @@ const REVIEWS = [
 ];
 
 function ReviewCard({ r, onClick }) {
+  const cardBg = normalizeCardBackground(r.bg, r.id || r.programTitle);
   return (
     <article
       onClick={onClick}
@@ -3317,7 +3346,7 @@ function ReviewCard({ r, onClick }) {
         padding: '12px 16px',
         background: 'var(--bg-soft)', borderTop: '1px solid var(--line-2)',
       }}>
-        <div style={{ width: 38, height: 38, borderRadius: 8, background: r.bg, flexShrink: 0 }} />
+        <div style={{ width: 38, height: 38, borderRadius: 8, background: cardBg, flexShrink: 0 }} />
         <div style={{ minWidth: 0, flex: 1 }}>
           <div style={{
             fontSize: 12, fontWeight: 700, color: 'var(--ink-900)',
@@ -3630,6 +3659,7 @@ function ListView({ programs, onOpen }) {
     <div style={{ marginTop: 18, display: 'flex', flexDirection: 'column', gap: 8 }}>
       {programs.map((p) => {
         const displayTitle = getProgramDisplayTitle(p);
+        const cardBg = normalizeCardBackground(p.bg, p.id || displayTitle);
         return (
         <div key={p.id} onClick={() => onOpen && onOpen(p)} style={{
           display: 'flex', gap: 18, alignItems: 'center',
@@ -3637,7 +3667,7 @@ function ListView({ programs, onOpen }) {
           cursor: 'pointer',
         }}>
           <div style={{
-            width: 96, height: 96, borderRadius: 10, background: p.bg, flexShrink: 0,
+            width: 96, height: 96, borderRadius: 10, background: cardBg, flexShrink: 0,
           }} />
           <div style={{ flex: 1, minWidth: 0 }}>
             <div style={{ display: 'flex', gap: 6, marginBottom: 6 }}>
