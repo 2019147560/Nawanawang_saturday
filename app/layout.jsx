@@ -1,5 +1,6 @@
 import './globals.css';
 import Providers from './providers';
+import { Analytics } from '@vercel/analytics/next';
 
 export const metadata = {
   title: '나와, 나왕 | 고립·은둔청년 지원사업 통합 검색',
@@ -24,6 +25,7 @@ export default function RootLayout({ children }) {
 
       <body>
         <Providers>{children}</Providers>
+        <Analytics />
       </body>
     </html>
   );
