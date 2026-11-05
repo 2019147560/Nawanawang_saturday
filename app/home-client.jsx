@@ -1258,6 +1258,14 @@ function Footer() {
           </a>
         </div>
       </div>
+      <div style={{
+        borderTop: '1px solid var(--line)',
+        padding: '16px 32px 24px',
+        textAlign: 'center',
+        fontSize: 12, color: 'var(--ink-500)',
+      }}>
+        This page is made by nawanawang family
+      </div>
       {requestOpen && <InfoRequestModal onClose={() => setRequestOpen(false)} />}
     </footer>
   );
