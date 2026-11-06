@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { query } from '../../../../lib/db';
+import { recordServerEvent } from '../../../../lib/analytics';
 import {
   createVerificationCode,
   isValidKoreanMobile,
@@ -28,6 +29,7 @@ export async function POST(request) {
 
   try {
     const result = await sendSms({ to: normalizedPhone, code });
+    await recordServerEvent('sms_sent');
 
     return NextResponse.json({
       ok: true,
@@ -36,6 +38,7 @@ export async function POST(request) {
     });
   } catch (error) {
     console.error('Failed to send phone verification SMS:', error);
+    await recordServerEvent('sms_failed');
     return NextResponse.json({ message: '인증번호 발송에 실패했습니다.' }, { status: 502 });
   }
 }

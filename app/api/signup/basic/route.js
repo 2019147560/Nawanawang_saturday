@@ -4,6 +4,7 @@ import { authOptions } from '../../../../lib/auth';
 import { query } from '../../../../lib/db';
 import { isValidKoreanMobile, normalizePhone } from '../../../../lib/phone-verification';
 import { eq, hasSupabaseRestConfig, supabaseRequest } from '../../../../lib/supabase-rest';
+import { recordServerEvent } from '../../../../lib/analytics';
 
 function isValidEmail(email) {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(email || '').trim());
@@ -223,5 +224,6 @@ export async function POST(request) {
     : await saveBasicWithPostgres(payload);
 
   if (result.error) return result.error;
+  await recordServerEvent('signup_basic_saved');
   return NextResponse.json({ ok: true, user: result.user });
 }
