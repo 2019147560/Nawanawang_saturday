@@ -43,6 +43,33 @@ export const BOARD_CSS = `
   .ab-ed-label{display:block}
   .ab-ed input,.ab-ed select,.ab-ed textarea,.ab-form input,.ab-form select,.ab-form textarea{font-size:16px}
 }
+.ab-sum{display:grid;grid-template-columns:repeat(8,minmax(0,1fr));gap:10px}
+@media (max-width:1100px){.ab-sum{grid-template-columns:repeat(4,minmax(0,1fr))}}
+.ab-sum-tile{display:flex;flex-direction:column;align-items:flex-start;gap:4px;padding:12px;border-radius:14px;border:1px solid var(--line);background:#fff;font-family:inherit;text-align:left;min-width:0;color:var(--ink-900)}
+.ab-sum-tile:hover{border-color:var(--brand-400)}
+.ab-sum-tile:focus-visible{outline:2px solid var(--brand-500);outline-offset:2px}
+.ab-sum-top{display:flex;align-items:center;gap:6px;min-width:0;width:100%}
+.ab-sum-icon{flex:0 0 28px;height:28px;border-radius:8px;display:inline-flex;align-items:center;justify-content:center}
+.ab-sum-label{font-size:12px;font-weight:600;color:var(--ink-600);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ab-sum-value{font-size:20px;font-weight:800;line-height:1.15;white-space:nowrap;max-width:100%;overflow:hidden;text-overflow:ellipsis}
+.ab-sum-note{font-size:11px;color:var(--ink-500);white-space:nowrap;max-width:100%;overflow:hidden;text-overflow:ellipsis}
+.ab-hide-sm{}
+@media (max-width:720px){
+  .ab-sum{gap:6px}
+  .ab-sum-tile{padding:8px;gap:2px;border-radius:12px;align-items:center;text-align:center}
+  .ab-sum-top{flex-direction:column;gap:2px}
+  .ab-sum-icon{flex-basis:26px;width:26px;height:26px}
+  .ab-sum-label{font-size:11px;max-width:100%}
+  .ab-sum-value{font-size:16px}
+  .ab-sum-note{font-size:10px;color:var(--ink-600)}
+  .ab-hide-sm{display:none !important}
+  .ab-head{padding:12px 12px;gap:10px;min-height:56px}
+  .ab-icon{flex-basis:34px;width:34px;height:34px;border-radius:10px}
+  .ab-head-title{font-size:14px !important}
+  .ab-chips{gap:4px;margin-top:4px}
+  .ab-body{padding:4px 12px 14px}
+  .ab-grid{gap:10px}
+}
 .ab-sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
 `;
 
@@ -79,12 +106,12 @@ export function SaveStatus({ state, updatedBy, seeded }) {
 
 export function Panel({ id, icon, color, title, chips, open, onToggle, children }) {
   return (
-    <section className="ab-panel" aria-labelledby={`${id}-title`}>
+    <section id={`panel-${id}`} className="ab-panel" aria-labelledby={`${id}-title`} style={{ scrollMarginTop: 12 }}>
       <h2 style={{ margin: 0 }}>
         <button type="button" className="ab-head" aria-expanded={open} aria-controls={`${id}-body`} onClick={onToggle}>
           <span className="ab-icon" style={{ background: color.bg, color: color.fg }}>{icon}</span>
           <span style={{ flex: '1 1 auto', minWidth: 0 }}>
-            <span id={`${id}-title`} style={{ display: 'block', fontSize: 15, fontWeight: 700 }}>{title}</span>
+            <span id={`${id}-title`} className="ab-head-title" style={{ display: 'block', fontSize: 15, fontWeight: 700 }}>{title}</span>
             <span className="ab-chips">{chips}</span>
           </span>
           <span style={{ color: 'var(--ink-400)', display: 'inline-flex', transform: open ? 'rotate(180deg)' : 'none', transition: 'transform .15s' }}>

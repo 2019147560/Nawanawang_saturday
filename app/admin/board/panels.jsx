@@ -325,7 +325,7 @@ function speed(ms) {
   return { tone: 'bad', label: '느림' };
 }
 
-export function HealthPanel({ open, onToggle, crawlItems }) {
+export function useHealth() {
   const [results, setResults] = useState([]);
   const [programs, setPrograms] = useState(null);
   const [checking, setChecking] = useState(false);
@@ -353,6 +353,16 @@ export function HealthPanel({ open, onToggle, crawlItems }) {
   }, []);
 
   useEffect(() => { run(); }, [run]);
+
+  const errors = results.filter((r) => !r.ok);
+  const avg = results.length ? results.reduce((a, r) => a + r.ms, 0) / results.length : null;
+  return { results, programs, checking, checkedAt, run, errors, avg };
+}
+
+export function speedOf(ms) { return speed(ms); }
+
+export function HealthPanel({ open, onToggle, crawlItems, health }) {
+  const { results, programs, checking, checkedAt, run } = health;
 
   const errors = results.filter((r) => !r.ok);
   const avg = results.length ? results.reduce((a, r) => a + r.ms, 0) / results.length : null;
