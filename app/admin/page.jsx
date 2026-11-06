@@ -29,5 +29,5 @@ export default async function AdminPage() {
     );
   }
 
-  return <AdminDashboard />;
+  return <AdminDashboard me={user.name || user.email || '관리자'} />;
 }
