@@ -52,6 +52,7 @@ function SectionHead({ id, title, note }) {
 
 export default function AdminDashboard() {
   const [period, setPeriod] = useState('7d');
+  const [overviewOpen, setOverviewOpen] = useState(false);
   const data = useMemo(() => getDummyData(period), [period]);
   const periodLabel = period === '7d' ? '최근 7일' : '최근 30일';
 
@@ -115,6 +116,34 @@ export default function AdminDashboard() {
           <div style={sub}>데이터 기준 {data.asOf} · 출처: 더미 데이터 (연동 예정: Supabase events, Google Search Console)</div>
         </div>
 
+        <button
+          type="button"
+          aria-expanded={overviewOpen}
+          aria-controls="overview-panel"
+          onClick={() => setOverviewOpen((v) => !v)}
+          style={{
+            width: '100%', textAlign: 'left', fontFamily: 'inherit',
+            background: '#fff', border: '1px solid var(--line)', borderRadius: 'var(--radius-card)',
+            padding: '16px 20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+            gap: 16, flexWrap: 'wrap', color: 'var(--ink-900)',
+          }}
+        >
+          <span style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+            <span style={{ fontSize: 15, fontWeight: 700 }}>트래픽 · 전환 · 콘텐츠</span>
+            <span style={{ fontSize: 13, color: 'var(--ink-500)' }}>
+              방문자 {fmt(total)}명 · 신청 링크 클릭률 {clickRate.toFixed(1)}% · 가입 완료 {fmt(funnelCounts[6])}명
+            </span>
+          </span>
+          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 13, fontWeight: 700, color: 'var(--brand-500)' }}>
+            {overviewOpen ? '접기' : '펼치기'}
+            <svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ transform: overviewOpen ? 'rotate(180deg)' : 'none', transition: 'transform 0.15s' }}>
+              <polyline points="6 9 12 15 18 9" />
+            </svg>
+          </span>
+        </button>
+
+        {overviewOpen && (
+        <div id="overview-panel" style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
         <section aria-label="핵심 지표" style={row}>
           {kpis.map((k) => (
             <div key={k.label} style={{ flex: '1 1 220px', background: '#fff', borderRadius: 16, padding: 20, border: k.key ? '2px solid var(--brand-600)' : '1px solid var(--line)' }}>
@@ -244,6 +273,8 @@ export default function AdminDashboard() {
             </ol>
           </section>
         </div>
+        </div>
+        )}
 
         <section aria-labelledby="t-seo" style={card}>
           <SectionHead id="t-seo" title="검색 노출 (SEO)" note="Google Search Console · 최근 28일 · 2~3일 지연" />
