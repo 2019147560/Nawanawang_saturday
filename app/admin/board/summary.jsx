@@ -51,7 +51,7 @@ export function buildSummary(board, health) {
     },
     {
       id: 'health', label: '응답', icon: I.Activity,
-      value: health.avg === null ? '…' : `${fmt(health.avg)}ms`,
+      value: health.avg === null ? '…' : health.avg >= 1000 ? `${(health.avg / 1000).toFixed(1)}초` : `${fmt(health.avg)}ms`,
       note: health.results.length ? (health.errors.length ? `에러 ${health.errors.length}` : '에러 없음') : '측정 중',
       tone: health.avg === null ? 'mute' : health.errors.length ? 'bad' : speedOf(health.avg).tone,
     },
