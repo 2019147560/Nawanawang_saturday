@@ -1,5 +1,6 @@
 import './globals.css';
 import Providers from './providers';
+import AnalyticsTracker from './analytics-tracker';
 
 export const metadata = {
   title: '나와, 나왕 | 고립·은둔청년 지원사업 통합 검색',
@@ -23,7 +24,10 @@ export default function RootLayout({ children }) {
       </head>
 
       <body>
-        <Providers>{children}</Providers>
+        <Providers>
+          <AnalyticsTracker />
+          {children}
+        </Providers>
       </body>
     </html>
   );

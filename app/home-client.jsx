@@ -2,6 +2,7 @@
 
 import React, { useMemo, useState } from 'react';
 import { signIn, signOut, useSession } from 'next-auth/react';
+import { track } from '../lib/track-client';
 
 
 /* ============================================================
@@ -1803,7 +1804,10 @@ function ProgramDetailPage({ program, onBack, onLogin, user, onLogout, onMyPage 
 
               <button
                 onClick={() => {
-                  if (applyUrl) window.open(applyUrl, '_blank', 'noopener,noreferrer');
+                  if (applyUrl) {
+                    track('apply_click', { programId: p.id, props: { title: getProgramDisplayTitle(p) } });
+                    window.open(applyUrl, '_blank', 'noopener,noreferrer');
+                  }
                 }}
                 style={{
                 width: '100%', height: 48, marginTop: 16,
@@ -2812,7 +2816,10 @@ function App() {
   const user = session?.user
     ? { name: session.user.name || session.user.email || '회원' }
     : null;
-  const onOpen = (p) => { setRoute({ name: 'detail', program: p }); window.scrollTo({ top: 0, behavior: 'instant' }); };
+  const onOpen = (p) => {
+    track('program_view', { programId: p.id, props: { title: getProgramDisplayTitle(p) } });
+    setRoute({ name: 'detail', program: p }); window.scrollTo({ top: 0, behavior: 'instant' });
+  };
   const onBack = () => { setRoute({ name: 'home' }); window.scrollTo({ top: 0, behavior: 'instant' }); };
   const onLogin = () => { setRoute({ name: 'login' }); window.scrollTo({ top: 0, behavior: 'instant' }); };
   const onLogout = () => { signOut({ callbackUrl: '/' }); };
@@ -3385,6 +3392,7 @@ function ListPage({ mode = 'home', onOpen, onLogin, onHome, onNavAll, user, onLo
   const [programError, setProgramError] = useState('');
 
   const handleFilter = (k, v) => {
+    track('filter_use', { props: { filter: k, values: Array.isArray(v) ? v.slice(0, 10) : v } });
     setFilters((f) => ({ ...f, [k]: v })); setPage(1);
     if (mode === 'home') onNavAll && onNavAll();
   };
@@ -3461,6 +3469,15 @@ function ListPage({ mode = 'home', onOpen, onLogin, onHome, onNavAll, user, onLo
       return true;
     });
   }, [prioritizedPrograms, filters, appliedQuery]);
+
+  // 검색어가 적용되고 목록이 준비되면 검색 1회로 기록 (결과 0건 검색어 집계용)
+  const lastTrackedQuery = React.useRef('');
+  React.useEffect(() => {
+    if (!appliedQuery) { lastTrackedQuery.current = ''; return; }
+    if (loadingPrograms || lastTrackedQuery.current === appliedQuery) return;
+    lastTrackedQuery.current = appliedQuery;
+    track('search', { searchQuery: appliedQuery, resultCount: filtered.length });
+  }, [appliedQuery, loadingPrograms, filtered.length]);
 
   const firstPageSections = useMemo(() => {
     const popularCount = Math.min(POPULAR_PICKS.length, prioritizedPrograms.length);

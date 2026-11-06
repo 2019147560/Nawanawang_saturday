@@ -3,6 +3,7 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '../../../../lib/auth';
 import { query } from '../../../../lib/db';
 import { eq, hasSupabaseRestConfig, supabaseRequest } from '../../../../lib/supabase-rest';
+import { recordServerEvent } from '../../../../lib/analytics';
 
 async function saveProfileWithSupabase({ email, region, persona }) {
   const users = await supabaseRequest(`users?select=id&email=eq.${eq(email)}&limit=1`);
@@ -107,5 +108,6 @@ export async function POST(request) {
     : await saveProfileWithPostgres({ email, region, persona });
 
   if (result.error) return result.error;
+  await recordServerEvent('signup_complete');
   return NextResponse.json({ ok: true });
 }

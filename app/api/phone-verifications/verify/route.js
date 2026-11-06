@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { query } from '../../../../lib/db';
 import { normalizePhone } from '../../../../lib/phone-verification';
+import { recordServerEvent } from '../../../../lib/analytics';
 
 export async function POST(request) {
   const { phone, code } = await request.json();
@@ -34,5 +35,6 @@ export async function POST(request) {
     return NextResponse.json({ message: '인증번호가 일치하지 않거나 만료되었습니다.' }, { status: 400 });
   }
 
+  await recordServerEvent('phone_verified');
   return NextResponse.json({ ok: true });
 }
