@@ -42,7 +42,7 @@ export function Box({ id, icon, title, metric, editing, onEdit, onAdd, addLabel,
         )}
       </div>
       {(editing || saveState === 'error' || saveState === 'conflict') && (
-        <div style={{ marginTop: 8 }}><SaveStatus state={saveState} updatedBy={entry?.updatedBy} seeded={entry?.seeded} /></div>
+        <div style={{ marginTop: 2 }}><SaveStatus state={saveState} updatedBy={entry?.updatedBy} seeded={entry?.seeded} /></div>
       )}
       <div className="ab-box-body">{children}</div>
     </section>
@@ -210,9 +210,11 @@ export function PriorityBox({ entry, saveState, setItems, flush }) {
             const subs = String(p.subtasks || '').split('\n').map((s) => s.trim()).filter(Boolean);
             return (
               <div key={p.id} className="ab-prio-col">
-                <span className="ab-prio-rank" aria-label={`${p.rank}순위`}>{p.rank}</span>
+                <span className="ab-prio-head">
+                  <span className="ab-prio-rank" aria-label={`${p.rank}순위`}>{p.rank}</span>
+                  <Chip tone={PRIO_TONE[p.status]}>{p.status}</Chip>
+                </span>
                 <span className="ab-prio-title">{p.title || '(이름 없음)'}</span>
-                <Chip tone={PRIO_TONE[p.status]}>{p.status}</Chip>
                 {subs.length > 0 && (
                   <ol className="ab-prio-subs">
                     {subs.map((s, i) => (
@@ -352,8 +354,8 @@ export function HealthBox({ health }) {
           </div>
         ))}
       </div>
-      <div style={{ marginTop: 10, display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-        <span style={{ fontSize: 12, color: 'var(--ink-500)' }}>이 브라우저에서 측정{checkedAt && ` · ${checkedAt}`} · 초록 0.6초 미만</span>
+      <div style={{ marginTop: 4, display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+        <span style={{ fontSize: 11, color: 'var(--ink-500)' }}>이 브라우저에서 측정{checkedAt && ` · ${checkedAt}`} · 초록 0.6초 미만</span>
         <button type="button" className="ab-btn" onClick={run} disabled={checking}><I.Refresh size={15} />{checking ? '측정 중…' : '다시 측정'}</button>
       </div>
     </Box>
@@ -378,7 +380,7 @@ function Face({ mood, index }) {
       ? <><path d="M14 20 Q17 16 20 20" /><path d="M28 20 Q31 16 34 20" /></>
       : <><circle cx="17" cy="19" r="2" fill="#3b2a1a" stroke="none" /><circle cx="31" cy="19" r="2" fill="#3b2a1a" stroke="none" /></>;
   return (
-    <svg viewBox="0 0 48 48" width="52" height="52" role="img" aria-label={`기분 ${mood}`}>
+    <svg viewBox="0 0 48 48" width="38" height="38" role="img" aria-label={`기분 ${mood}`}>
       <circle cx="24" cy="24" r="22" fill={FACE_BG[index % FACE_BG.length]} stroke="#3b2a1a" strokeWidth="2.5" />
       <g stroke="#3b2a1a" strokeWidth="2.5" strokeLinecap="round" fill="none">{eyes}{mouth}</g>
     </svg>
@@ -434,8 +436,10 @@ export function TeamBox({ team, motto, saveState, setItems, flush }) {
               ))}
             </ul>
           )}
-          <p className="ab-team-caption">자체평가 점수 (5점 만점)</p>
-          {mottoText && <p className="ab-motto">“{mottoText}”</p>}
+          <div className="ab-team-foot">
+            {mottoText && <p className="ab-motto">“{mottoText}”</p>}
+            <p className="ab-team-caption">숫자: 자체평가 (5점 만점)</p>
+          </div>
         </>
       )}
     </Box>
@@ -454,7 +458,7 @@ export function SeoBox() {
         <div className="ab-quad-cell"><span className="ab-quad-label">검색 노출</span><span className="ab-quad-value">{fmt(s.impressions)}<small>회</small></span></div>
         <div className="ab-quad-cell"><span className="ab-quad-label">클릭률</span><span className="ab-quad-value">{s.ctr}<small>%</small></span></div>
       </div>
-      <p style={{ margin: '10px 0 0', fontSize: 12, color: 'var(--ink-500)' }}>대표 검색어 기준 · Search Console·네이버 서치어드바이저 연동 전 예시 숫자</p>
+      <p className="ab-note">대표 검색어 기준 · Search Console·네이버 서치어드바이저 연동 전 예시 숫자</p>
     </Box>
   );
 }
