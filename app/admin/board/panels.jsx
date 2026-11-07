@@ -55,7 +55,7 @@ function daysText(d) {
   return `${d}일 전`;
 }
 
-export function CrawlPanel({ open, onToggle, entry, saveState, setItems, flush }) {
+export function CrawlPanel({ metric, open, onToggle, entry, saveState, setItems, flush }) {
   const [editing, toggleEdit] = useEditMode('crawl_sites', flush);
   const items = entry.items;
   const rows = items.map((s) => ({ ...s, fresh: crawlFreshness(s) }));
@@ -63,6 +63,7 @@ export function CrawlPanel({ open, onToggle, entry, saveState, setItems, flush }
 
   return (
     <Panel
+      metric={metric}
       id="crawl"
       icon={<I.Globe />}
       color={COLORS.blue}
@@ -146,7 +147,7 @@ function dueText(due) {
   return { text: `D-${-d}`, tone: -d <= 3 ? 'warn' : 'mute' };
 }
 
-export function PriorityPanel({ open, onToggle, entry, saveState, setItems, flush }) {
+export function PriorityPanel({ metric, open, onToggle, entry, saveState, setItems, flush }) {
   const [editing, toggleEdit] = useEditMode('priorities', flush);
   const items = entry.items;
   const sorted = useMemo(() => [...items].sort((a, b) =>
@@ -158,6 +159,7 @@ export function PriorityPanel({ open, onToggle, entry, saveState, setItems, flus
 
   return (
     <Panel
+      metric={metric}
       id="priority"
       icon={<I.Flag />}
       color={COLORS.red}
@@ -212,7 +214,7 @@ export function PriorityPanel({ open, onToggle, entry, saveState, setItems, flus
 
 const TAB_ICON = { 링크: I.Link, 회의: I.Video, 읽을거리: I.Book, 감상: I.Star, 연락처: I.Phone };
 
-export function LinksPanel({ open, onToggle, links, contacts, saveState, setItems, flush }) {
+export function LinksPanel({ metric, open, onToggle, links, contacts, saveState, setItems, flush }) {
   const [tab, setTab] = useState('링크');
   const isContacts = tab === '연락처';
   const key = isContacts ? 'contacts' : 'links';
@@ -228,6 +230,7 @@ export function LinksPanel({ open, onToggle, links, contacts, saveState, setItem
 
   return (
     <Panel
+      metric={metric}
       id="links"
       icon={<I.Link />}
       color={COLORS.purple}
@@ -361,7 +364,7 @@ export function useHealth() {
 
 export function speedOf(ms) { return speed(ms); }
 
-export function HealthPanel({ open, onToggle, crawlItems, health }) {
+export function HealthPanel({ metric, open, onToggle, crawlItems, health }) {
   const { results, programs, checking, checkedAt, run } = health;
 
   const errors = results.filter((r) => !r.ok);
@@ -370,6 +373,7 @@ export function HealthPanel({ open, onToggle, crawlItems, health }) {
 
   return (
     <Panel
+      metric={metric}
       id="health"
       icon={<I.Activity />}
       color={COLORS.green}
@@ -425,7 +429,7 @@ export function HealthPanel({ open, onToggle, crawlItems, health }) {
 const KINDS = ['자체평가', '잡담', '칭찬', '아이디어'];
 const KIND_TONE = { 자체평가: 'info', 잡담: 'mute', 칭찬: 'good', 아이디어: 'warn' };
 
-export function CommunityPanel({ open, onToggle, entry, saveState, setItems, me }) {
+export function CommunityPanel({ metric, open, onToggle, entry, saveState, setItems, me }) {
   const [kind, setKind] = useState('자체평가');
   const [score, setScore] = useState('4');
   const [text, setText] = useState('');
@@ -444,6 +448,7 @@ export function CommunityPanel({ open, onToggle, entry, saveState, setItems, me 
 
   return (
     <Panel
+      metric={metric}
       id="community"
       icon={<I.Users />}
       color={COLORS.yellow}
@@ -506,10 +511,11 @@ export function CommunityPanel({ open, onToggle, entry, saveState, setItems, me 
 
 /* ---------- 6. SEO ---------- */
 
-export function SeoPanel({ open, onToggle }) {
+export function SeoPanel({ metric, open, onToggle }) {
   const s = SEO_DUMMY;
   return (
     <Panel
+      metric={metric}
       id="seo"
       icon={<I.Search />}
       color={COLORS.blue}
@@ -570,7 +576,7 @@ export function SeoPanel({ open, onToggle }) {
 
 const TICKET_TONE = { 접수: 'warn', '처리 중': 'info', 완료: 'good', 보류: 'mute' };
 
-export function TicketPanel({ boardKey, id, title, icon, color, open, onToggle, entry, saveState, setItems, flush }) {
+export function TicketPanel({ metric, boardKey, id, title, icon, color, open, onToggle, entry, saveState, setItems, flush }) {
   const [editing, toggleEdit] = useEditMode(boardKey, flush);
   const items = [...entry.items].sort((a, b) => (a.status === '완료') - (b.status === '완료') || String(b.date).localeCompare(String(a.date)));
   const pending = items.filter((t) => t.status === '접수').length;
@@ -578,6 +584,7 @@ export function TicketPanel({ boardKey, id, title, icon, color, open, onToggle, 
 
   return (
     <Panel
+      metric={metric}
       id={id}
       icon={icon}
       color={COLORS[color]}

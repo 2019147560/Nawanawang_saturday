@@ -5,7 +5,7 @@ import { signOut } from 'next-auth/react';
 import { I } from './board/icons';
 import { BOARD_CSS } from './board/ui';
 import { useBoard } from './board/use-board';
-import { SummaryStrip, buildSummary } from './board/summary';
+import { buildSummary } from './board/summary';
 import {
   CommunityPanel,
   CrawlPanel,
@@ -40,10 +40,7 @@ export default function AdminDashboard({ me }) {
   const allOpen = PANEL_IDS.every((id) => open[id]);
   const setAll = (v) => updateOpen(Object.fromEntries(PANEL_IDS.map((id) => [id, v])));
 
-  const pick = (id) => {
-    updateOpen({ ...open, [id]: true });
-    requestAnimationFrame(() => document.getElementById(`panel-${id}`)?.scrollIntoView({ behavior: 'smooth', block: 'start' }));
-  };
+  const metrics = Object.fromEntries(buildSummary(board, health).map((m) => [m.id, m]));
 
   const common = (key) => ({ entry: board[key], saveState: saveState[key], setItems, flush });
 
@@ -84,16 +81,14 @@ export default function AdminDashboard({ me }) {
           </div>
         )}
 
-        <SummaryStrip items={buildSummary(board, health)} onPick={pick} />
-
         <div className="ab-grid">
           {/* 1단 */}
-          <CrawlPanel open={!!open.crawl} onToggle={toggle('crawl')} {...common('crawl_sites')} />
-          <PriorityPanel open={!!open.priority} onToggle={toggle('priority')} {...common('priorities')} />
+          <CrawlPanel metric={metrics.crawl} open={!!open.crawl} onToggle={toggle('crawl')} {...common('crawl_sites')} />
+          <PriorityPanel metric={metrics.priority} open={!!open.priority} onToggle={toggle('priority')} {...common('priorities')} />
 
           {/* 2단 */}
           <LinksPanel
-            open={!!open.links}
+            metric={metrics.links} open={!!open.links}
             onToggle={toggle('links')}
             links={board.links}
             contacts={board.contacts}
@@ -101,15 +96,15 @@ export default function AdminDashboard({ me }) {
             setItems={setItems}
             flush={flush}
           />
-          <HealthPanel open={!!open.health} onToggle={toggle('health')} crawlItems={board.crawl_sites.items} health={health} />
+          <HealthPanel metric={metrics.health} open={!!open.health} onToggle={toggle('health')} crawlItems={board.crawl_sites.items} health={health} />
 
           {/* 3단 */}
-          <CommunityPanel open={!!open.community} onToggle={toggle('community')} me={me} {...common('community')} />
-          <SeoPanel open={!!open.seo} onToggle={toggle('seo')} />
+          <CommunityPanel metric={metrics.community} open={!!open.community} onToggle={toggle('community')} me={me} {...common('community')} />
+          <SeoPanel metric={metrics.seo} open={!!open.seo} onToggle={toggle('seo')} />
 
           {/* 4단 */}
-          <TicketPanel boardKey="feedback" id="feedback" title="피드백" icon={<I.Message />} color="purple" open={!!open.feedback} onToggle={toggle('feedback')} {...common('feedback')} />
-          <TicketPanel boardKey="inquiries" id="inquiries" title="문의사항" icon={<I.Help />} color="gray" open={!!open.inquiries} onToggle={toggle('inquiries')} {...common('inquiries')} />
+          <TicketPanel boardKey="feedback" id="feedback" title="피드백" icon={<I.Message />} color="purple" metric={metrics.feedback} open={!!open.feedback} onToggle={toggle('feedback')} {...common('feedback')} />
+          <TicketPanel boardKey="inquiries" id="inquiries" title="문의사항" icon={<I.Help />} color="gray" metric={metrics.inquiries} open={!!open.inquiries} onToggle={toggle('inquiries')} {...common('inquiries')} />
         </div>
 
         <footer style={{ fontSize: 12, color: 'var(--ink-500)', textAlign: 'center' }}>
