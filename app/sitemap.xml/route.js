@@ -1,3 +1,5 @@
+import { SITE_URL } from '../../lib/site-url';
+
 export const dynamic = 'force-dynamic';
 
 const paths = ['/', '/login', '/signup-info', '/signup-info/step3'];
@@ -22,7 +24,8 @@ function getBaseUrl(request) {
 }
 
 export function GET(request) {
-  const baseUrl = getBaseUrl(request);
+  // 어느 주소로 열어도 대표 주소로 적는다
+  const baseUrl = SITE_URL || getBaseUrl(request);
   const lastModified = new Date().toISOString();
   const urls = paths
     .map((path) => {
