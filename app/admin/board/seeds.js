@@ -47,7 +47,7 @@ export const SEEDS = {
     { id: id(), category: '읽을거리', title: '[읽어볼 자료]', url: '', note: '' },
     { id: id(), category: '감상', title: '[감상 목록]', url: '', note: '' },
     { id: id(), category: '링크', title: 'GitHub 저장소', url: 'https://github.com/2019147560/Nawanawang_saturday', note: '' },
-    { id: id(), category: '링크', title: '서비스 사이트', url: 'https://nawanawang-saturday.vercel.app', note: '' },
+    { id: id(), category: '링크', title: '서비스 사이트', url: 'https://www.nawanawang.com', note: '' },
   ],
   contacts: [
     { id: id(), name: '대표 메일', role: '문의 창구', contact: 'step.here@naver.com', note: '' },
