@@ -26,18 +26,18 @@ export default function AdminDashboard({ me }) {
       <style dangerouslySetInnerHTML={{ __html: BOARD_CSS }} />
 
       <header style={{ background: '#fff', borderBottom: '1px solid var(--line)' }}>
-        <div style={{ maxWidth: 1200, margin: '0 auto', padding: '14px 20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
-          <a href="/" style={{ fontSize: 22, fontWeight: 800 }}>나와, 나왕</a>
+        <div style={{ maxWidth: 1200, margin: '0 auto', padding: '8px 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
+          <a href="/" style={{ fontSize: 18, fontWeight: 800 }}>나와, 나왕</a>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
             <span className="ab-hide-sm" style={{ fontSize: 13, color: 'var(--ink-600)' }}>{me}</span>
-            <button type="button" className="ab-btn" onClick={() => signOut({ callbackUrl: '/admin' })}>로그아웃</button>
+            <button type="button" className="ab-btn" style={{ minHeight: 32, padding: '0 10px', fontSize: 12 }} onClick={() => signOut({ callbackUrl: '/admin' })}>로그아웃</button>
           </div>
         </div>
       </header>
 
-      <main style={{ maxWidth: 1200, margin: '0 auto', padding: '16px 20px 64px', display: 'flex', flexDirection: 'column', gap: 14 }}>
+      <main style={{ maxWidth: 1200, margin: '0 auto', padding: '10px 16px 40px', display: 'flex', flexDirection: 'column', gap: 10 }}>
         {loadState === 'no-table' && (
-          <div role="alert" style={{ display: 'flex', gap: 10, alignItems: 'flex-start', padding: '12px 14px', borderRadius: 12, background: 'var(--warn-50)', color: 'var(--warn-700)', fontSize: 13, lineHeight: 1.6 }}>
+          <div role="alert" style={{ display: 'flex', gap: 10, alignItems: 'flex-start', padding: '6px 12px', borderRadius: 10, background: 'var(--warn-50)', color: 'var(--warn-700)', fontSize: 12, lineHeight: 1.5 }}>
             <I.Alert size={18} style={{ flex: '0 0 18px', marginTop: 2 }} />
             <span><strong>저장소 미설정</strong> · Supabase에서 <code>db/admin-board.sql</code>을 실행하기 전까지는 편집 내용이 저장되지 않아요.</span>
           </div>
