@@ -58,7 +58,7 @@ export default function AdminDashboard({ me }) {
           <HealthBox health={health} />
 
           <TeamBox team={board.team} motto={board.motto} saveState={saveState} setItems={setItems} flush={flush} />
-          <SeoBox />
+          <SeoBox {...common('seo_keywords')} />
 
           <TicketsBox feedback={board.feedback} inquiries={board.inquiries} saveState={saveState} setItems={setItems} flush={flush} />
         </div>

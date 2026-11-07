@@ -9,6 +9,13 @@ export const metadata = {
   icons: {
     icon: '/icon.svg',
   },
+  // 검색엔진 소유 확인용 (Vercel 환경변수에 값을 넣으면 <meta> 태그로 출력)
+  verification: {
+    ...(process.env.GOOGLE_SITE_VERIFICATION ? { google: process.env.GOOGLE_SITE_VERIFICATION } : {}),
+    ...(process.env.NAVER_SITE_VERIFICATION
+      ? { other: { 'naver-site-verification': process.env.NAVER_SITE_VERIFICATION } }
+      : {}),
+  },
 };
 
 export default function RootLayout({ children }) {

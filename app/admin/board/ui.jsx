@@ -79,6 +79,7 @@ export const BOARD_CSS = `
 .ab-crawl-row{display:grid;grid-template-columns:minmax(0,1fr) 22px 40px;align-items:center;gap:6px;min-height:28px;border-bottom:1px solid var(--line-2);font-size:13px;line-height:1.2}
 .ab-crawl-name{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:600}
 .ab-crawl-date{font-size:12px;color:var(--ink-600);text-align:right;font-weight:600}
+.ab-crawl-reason{grid-column:1 / -1;font-size:11px;color:var(--ink-500);margin:-6px 0 4px;line-height:1.3}
 .ab-prio{display:flex;gap:14px;overflow-x:auto;margin-top:2px}
 .ab-prio-col{flex:1 0 120px;display:flex;flex-direction:column;align-items:flex-start;gap:3px;min-width:0}
 .ab-prio-head{display:flex;align-items:center;gap:6px;flex-wrap:wrap}

@@ -5,7 +5,6 @@ import { I } from './icons';
 import { LINK_CATEGORIES, MOODS } from './seeds';
 import { Chip, EditableList, Empty, ExtLink, SaveStatus } from './ui';
 import { daysSince, newId, todayKST } from './use-board';
-import { SEO_DUMMY } from './seo-dummy';
 
 const fmt = (n) => Math.round(n).toLocaleString('ko-KR');
 const shortDate = (d) => (d ? `${Number(d.slice(5, 7))}/${Number(d.slice(8, 10))}` : '');
@@ -105,67 +104,116 @@ export function ScheduleBox({ entry, saveState, setItems, flush }) {
   );
 }
 
-/* ---------- 크롤링 사이트 ---------- */
+/* ---------- 크롤링 사이트 (자동 점검) ---------- */
 
-export function crawlFreshness(site) {
-  const d = daysSince(site.lastUpdated);
-  if (site.status === '실패' || site.status === '중단') return { tone: 'bad', label: '실패', days: d };
-  if (site.status === '지연' || d === null || d > 7) return { tone: 'warn', label: '미업데이트', days: d };
-  return { tone: 'good', label: '최신', days: d };
+function StatusMark({ tone, label }) {
+  const map = {
+    good: [I.Check, 'var(--success-700)'],
+    bad: [I.X, '#a61b1b'],
+    warn: [I.Alert, 'var(--warn-700)'],
+    wait: [I.Clock, 'var(--ink-400)'],
+  };
+  const [Icon, color] = map[tone] || map.wait;
+  return <span style={{ color, display: 'inline-flex' }} role="img" aria-label={label}><Icon size={18} strokeWidth={2.6} /></span>;
 }
 
-function StatusMark({ tone }) {
-  const map = {
-    good: [I.Check, 'var(--success-700)', '최신'],
-    bad: [I.X, '#a61b1b', '실패'],
-    warn: [I.Alert, 'var(--warn-700)', '미업데이트'],
-  };
-  const [Icon, color, label] = map[tone];
-  return <span style={{ color, display: 'inline-flex' }} role="img" aria-label={label}><Icon size={20} strokeWidth={2.6} /></span>;
+// 서버에 사이트 목록을 보내 상태를 받아온다 (서버는 10분 캐시)
+export function useCrawlStatus(sites) {
+  const [state, setState] = useState({ loading: true, byId: {}, checkedAt: '', error: '', hasCreatedAt: false });
+  const sig = JSON.stringify(sites.map((s) => [s.id, s.url, s.match]));
+
+  const run = useCallback(async () => {
+    setState((s) => ({ ...s, loading: true }));
+    try {
+      const res = await fetch('/api/admin/crawl-status', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ sites: sites.map(({ id, url, match }) => ({ id, url, match })) }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.message || `점검 실패 (${res.status})`);
+      setState({
+        loading: false,
+        byId: Object.fromEntries((data.results || []).map((r) => [r.id, r])),
+        checkedAt: data.checkedAt,
+        error: data.dbError ? `사업 데이터 조회 실패: ${data.dbError}` : '',
+        hasCreatedAt: data.hasCreatedAt,
+      });
+    } catch (e) {
+      setState((s) => ({ ...s, loading: false, error: e.message }));
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [sig]);
+
+  useEffect(() => {
+    const t = setTimeout(run, 400);
+    return () => clearTimeout(t);
+  }, [run]);
+
+  return { ...state, run };
 }
 
 export function CrawlBox({ entry, saveState, setItems, flush }) {
   const [editing, toggle] = useEdit(['crawl_sites'], flush);
-  const rows = entry.items.map((s) => ({ ...s, fresh: crawlFreshness(s) }));
-  const good = rows.filter((r) => r.fresh.tone === 'good').length;
-  const tone = good === rows.length ? 'good' : rows.some((r) => r.fresh.tone === 'bad') ? 'bad' : 'warn';
+  const status = useCrawlStatus(editing ? [] : entry.items);
+  const rows = entry.items.map((s) => ({ ...s, st: status.byId[s.id] }));
+  const checked = rows.filter((r) => r.st);
+  const good = checked.filter((r) => r.st.tone === 'good').length;
+  const tone = !checked.length ? 'ink' : good === rows.length ? 'good' : checked.some((r) => r.st.tone === 'bad') ? 'bad' : 'warn';
 
   return (
     <Box
       id="crawl"
       icon={<I.Globe size={18} />}
       title="크롤링 사이트"
-      metric={{ value: `${good}/${rows.length}`, tone, label: `전체 ${rows.length}곳 중 ${good}곳 최신` }}
+      metric={{ value: checked.length ? `${good}/${rows.length}` : '…', tone, label: `전체 ${rows.length}곳 중 ${good}곳 정상` }}
       editing={editing}
       onEdit={toggle}
       saveState={saveState}
       entry={entry}
     >
       {editing ? (
-        <EditableList
-          items={entry.items}
-          onChange={(fn) => setItems('crawl_sites', fn)}
-          newItem={() => ({ id: newId(), name: '', url: '', lastUpdated: todayKST(), cycle: '매일', status: '정상', note: '' })}
-          addLabel="사이트 추가"
-          fields={[
-            { key: 'name', label: '사이트', col: '1fr' },
-            { key: 'url', label: '주소', type: 'url', col: '1.2fr', wide: true, placeholder: 'https://' },
-            { key: 'lastUpdated', label: '마지막 업데이트', type: 'date', col: '150px' },
-            { key: 'status', label: '상태', type: 'select', options: ['정상', '지연', '실패', '중단'], col: '90px' },
-          ]}
-        />
+        <>
+          <p className="ab-note">상태는 자동으로 점검해요. 여기서는 사이트 목록과, 사업 데이터의 기관명에서 찾을 키워드(쉼표로 구분)만 고치면 돼요.</p>
+          <EditableList
+            items={entry.items}
+            onChange={(fn) => setItems('crawl_sites', fn)}
+            newItem={() => ({ id: newId(), name: '', url: '', match: '' })}
+            addLabel="사이트 추가"
+            fields={[
+              { key: 'name', label: '사이트', col: '1fr' },
+              { key: 'url', label: '주소', type: 'url', col: '1.4fr', wide: true, placeholder: 'https://' },
+              { key: 'match', label: '기관명 키워드', col: '1fr', wide: true, placeholder: '예: 니트생활자' },
+            ]}
+          />
+        </>
       ) : rows.length === 0 ? (
         <Empty>등록된 사이트가 없어요.</Empty>
       ) : (
-        <ul className="ab-crawl" aria-label="크롤링 사이트 목록">
-          {rows.map((r) => (
-            <li key={r.id} className="ab-crawl-row">
-              <span className="ab-crawl-name">{r.url ? <ExtLink href={r.url}>{r.name || '(이름 없음)'}</ExtLink> : (r.name || '(이름 없음)')}</span>
-              <StatusMark tone={r.fresh.tone} />
-              <span className="ab-crawl-date">{r.lastUpdated ? shortDate(r.lastUpdated) : '·'}</span>
-            </li>
-          ))}
-        </ul>
+        <>
+          <ul className="ab-crawl" aria-label="크롤링 사이트 목록">
+            {rows.map((r) => {
+              const st = r.st;
+              const date = st?.lastUpdated || st?.latestDeadline;
+              return (
+                <li key={r.id} className="ab-crawl-row" title={st ? `${st.reason} · 사업 ${st.programs}건 · 사이트 ${st.live.code || '응답 없음'} ${st.live.ms}ms` : '점검 중'}>
+                  <span className="ab-crawl-name">{r.url ? <ExtLink href={r.url}>{r.name || '(이름 없음)'}</ExtLink> : (r.name || '(이름 없음)')}</span>
+                  <StatusMark tone={st ? st.tone : 'wait'} label={st ? st.reason : '점검 중'} />
+                  <span className="ab-crawl-date">{st ? (date ? shortDate(date) : '·') : '…'}</span>
+                  {st && st.tone !== 'good' && <span className="ab-crawl-reason">{st.reason}</span>}
+                </li>
+              );
+            })}
+          </ul>
+          <div style={{ marginTop: 4, display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+            <span className="ab-note" style={{ margin: 0 }}>
+              {status.error ? <span style={{ color: '#a61b1b' }}>{status.error}</span> : (
+                <>자동 점검{status.checkedAt && ` · ${new Date(status.checkedAt).toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' })}`} · 날짜: {status.hasCreatedAt ? '최근 반영일' : '가장 늦은 마감일'}</>
+              )}
+            </span>
+            <button type="button" className="ab-btn" onClick={status.run} disabled={status.loading}><I.Refresh size={15} />{status.loading ? '점검 중…' : '다시 점검'}</button>
+          </div>
+        </>
       )}
     </Box>
   );
@@ -446,19 +494,105 @@ export function TeamBox({ team, motto, saveState, setItems, flush }) {
   );
 }
 
-/* ---------- SEO ---------- */
+/* ---------- SEO (Search Console · 네이버 검색 API) ---------- */
 
-export function SeoBox() {
-  const s = SEO_DUMMY;
+export function useSeo(keywords) {
+  const [state, setState] = useState({ loading: true, data: null, error: '' });
+  const q = keywords.join('|');
+  const run = useCallback(async (refresh = false) => {
+    setState((s) => ({ ...s, loading: true }));
+    try {
+      const res = await fetch(`/api/admin/seo?keywords=${encodeURIComponent(q)}${refresh ? '&refresh=1' : ''}`, { cache: 'no-store' });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.message || `조회 실패 (${res.status})`);
+      setState({ loading: false, data, error: '' });
+    } catch (e) {
+      setState({ loading: false, data: null, error: e.message });
+    }
+  }, [q]);
+  useEffect(() => {
+    const t = setTimeout(() => run(false), 600);
+    return () => clearTimeout(t);
+  }, [run]);
+  return { ...state, run };
+}
+
+function rankText(n) {
+  if (n === null || n === undefined) return null;
+  return n < 10 ? n.toFixed(1).replace(/\.0$/, '') : String(Math.round(n));
+}
+
+export function SeoBox({ entry, saveState, setItems, flush }) {
+  const [editing, toggle] = useEdit(['seo_keywords'], flush);
+  const keywords = entry.items.map((k) => String(k.keyword || '').trim()).filter(Boolean);
+  const main = keywords[0] || '';
+  const seo = useSeo(editing ? [] : keywords);
+  const d = seo.data;
+  const g = d?.google;
+  const n = d?.naver;
+  const gKw = g?.keywords?.find((k) => k.keyword === main);
+  const nKw = n?.keywords?.find((k) => k.keyword === main);
+  const linked = d ? (d.config.google ? 1 : 0) + (d.config.naver ? 1 : 0) : 0;
+
+  const cell = (label, value, unit, note) => (
+    <div className="ab-quad-cell" title={note || undefined}>
+      <span className="ab-quad-label">{label}</span>
+      <span className="ab-quad-value" style={{ color: value === null ? 'var(--ink-400)' : undefined }}>
+        {value === null ? <small style={{ fontSize: 12 }}>{note || '—'}</small> : <>{value}<small>{unit}</small></>}
+      </span>
+    </div>
+  );
+
+  const googleNote = !d ? '…' : !d.config.google ? '연동 필요' : d.errors.google ? '오류' : null;
+  const naverNote = !d ? '…' : !d.config.naver ? '연동 필요' : d.errors.naver ? '오류' : null;
+
   return (
-    <Box id="seo" icon={<I.Search size={18} />} title="SEO" metric={{ value: '더미', tone: 'warn', label: '예시 데이터' }}>
-      <div className="ab-quad">
-        <div className="ab-quad-cell"><span className="ab-quad-label">Google 순위</span><span className="ab-quad-value">{s.googleRank}<small>위</small></span></div>
-        <div className="ab-quad-cell"><span className="ab-quad-label">Naver 순위</span><span className="ab-quad-value">{s.naverRank}<small>위</small></span></div>
-        <div className="ab-quad-cell"><span className="ab-quad-label">검색 노출</span><span className="ab-quad-value">{fmt(s.impressions)}<small>회</small></span></div>
-        <div className="ab-quad-cell"><span className="ab-quad-label">클릭률</span><span className="ab-quad-value">{s.ctr}<small>%</small></span></div>
-      </div>
-      <p className="ab-note">대표 검색어 기준 · Search Console·네이버 서치어드바이저 연동 전 예시 숫자</p>
+    <Box
+      id="seo"
+      icon={<I.Search size={18} />}
+      title="SEO"
+      metric={d ? (linked === 2 ? { value: '자동', tone: 'good', label: '구글·네이버 연동됨' } : { value: `연동 ${linked}/2`, tone: 'warn', label: `${linked}개 연동됨` }) : null}
+      editing={editing}
+      onEdit={toggle}
+      saveState={saveState}
+      entry={entry}
+    >
+      {editing ? (
+        <>
+          <p className="ab-note">순위를 확인할 검색어예요. 첫 번째가 대표 검색어로 크게 보여요. 최대 3개.</p>
+          <EditableList
+            items={entry.items}
+            onChange={(fn) => setItems('seo_keywords', fn)}
+            newItem={() => ({ id: newId(), keyword: '' })}
+            addLabel="검색어 추가"
+            fields={[{ key: 'keyword', label: '검색어', col: '1fr', wide: true }]}
+          />
+        </>
+      ) : (
+        <>
+          <div className="ab-quad">
+            {cell('Google 순위', googleNote ? null : rankText(gKw?.position ?? g?.position), '위', googleNote || (gKw?.position == null ? '전체 평균' : undefined))}
+            {cell('Naver 순위', naverNote ? null : (nKw?.rank ?? null), '위', naverNote || (nKw && nKw.rank == null ? `${nKw.checked || 300}위 밖` : undefined))}
+            {cell('검색 노출', googleNote ? null : fmt(g?.impressions || 0), '회', googleNote)}
+            {cell('클릭률', googleNote ? null : (g ? g.ctr.toFixed(2) : null), '%', googleNote)}
+          </div>
+          <p className="ab-note">
+            대표 검색어 <strong>{main || '(없음)'}</strong>
+            {keywords.length > 1 && n?.keywords && <> · 네이버 {n.keywords.slice(1).map((k) => `${k.keyword} ${k.rank ? `${k.rank}위` : '순위 밖'}`).join(' · ')}</>}
+            {g?.topQueries?.length > 0 && <> · 유입 검색어: {g.topQueries.slice(0, 3).map((q) => q.query).join(', ')}</>}
+            {g && <> · 구글 {g.range.startDate.slice(5)}~{g.range.endDate.slice(5)}</>}
+          </p>
+          {(seo.error || d?.errors?.google || d?.errors?.naver) && (
+            <p className="ab-note" style={{ color: '#a61b1b' }}>{seo.error || [d.errors.google, d.errors.naver].filter(Boolean).join(' / ')}</p>
+          )}
+          {d && linked < 2 && (
+            <p className="ab-note">
+              연동하려면 Vercel 환경변수에{!d.config.google && <> 구글: <code>GSC_CLIENT_EMAIL</code>, <code>GSC_PRIVATE_KEY</code>, <code>GSC_SITE_URL</code></>}
+              {!d.config.naver && <> 네이버: <code>NAVER_CLIENT_ID</code>, <code>NAVER_CLIENT_SECRET</code></>}를 넣어 주세요.
+            </p>
+          )}
+        </>
+      )}
     </Box>
   );
 }
